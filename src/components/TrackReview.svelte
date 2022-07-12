@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-    import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, writeBatch } from "firebase/firestore";
+    import { collection, serverTimestamp, doc, orderBy, query, writeBatch, getDocs } from "firebase/firestore";
     import { onMount } from "svelte";
     import remove from "lodash/remove.js";
     import { auth, db } from "../firebase.js";
@@ -11,7 +11,6 @@
     export let trackId;
     export let userId;
     
-    let date = new Date();
     let currUserHasReview = false;
     let currUserReview = "";
     let currUserRating = 0;
@@ -44,7 +43,13 @@
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
-            const allTracks = await getDocs(collection(db, `tracks/${trackId}/reviews`));
+            const allTracksRef = collection(db, `tracks/${trackId}/reviews`);
+            const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"));
+            const allTracks = await getDocs(allTracksQuery);
+
+            //URGENT: ADD PAGINATION IN THE FORM OF INFINITE SCROLLING
+            //OR DO IT LIKE AOTY.ORG
+
             allTracks.forEach(doc => {
                 addToReviews(doc.data());
 
@@ -94,15 +99,19 @@
             const batch = writeBatch(db);
             batch.set(doc(db, `tracks/${$page.params.id}/reviews/${userId}`), {
                 author: userId,
-                date: date.toLocaleString(),
+                date: serverTimestamp(),
                 rating,
                 message,
+                likes: [],
+                likeCount: 0,
             });
             batch.set(doc(db, `users/${userId}/reviews/${$page.params.id}`), {
                 author: userId,
-                date: date.toLocaleString(),
+                date: serverTimestamp(),
                 rating,
                 message,
+                likes: [],
+                likeCount: 0,
             });
             await batch.commit();
             if (browser) {

@@ -25,6 +25,8 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@lottiefiles/jlottie": "^1.2.1",
+		"@lottiefiles/svelte-lottie-player": "^0.2.0",
 		"axios": "^0.27.2",
 		"base64url": "^3.0.1",
 		"cookie-parser": "^1.4.6",

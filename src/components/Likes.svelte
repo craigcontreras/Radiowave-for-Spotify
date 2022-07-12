@@ -69,7 +69,11 @@
                     throw "Review no longer exists";
                 }
 
-                const likeIncrement = reviewDoc.data().likeCount + 1;
+                let likeIncrement = reviewDoc.data().likeCount + 1;
+
+                if (isNaN(likeIncrement)) {
+                    likeIncrement = 1;
+                }
 
                 transaction.update(doc(db, fromDoc), {
                     likeCount: likeIncrement,
@@ -99,13 +103,16 @@
                     throw "User has not liked this post";
                 }
                 
-                const likeDecrement = reviewDoc.data().likeCount - 1;
+                let likeDecrement = reviewDoc.data().likeCount - 1;
+
+                if (isNaN(likeDecrement)) {
+                    likeDecrement = 0;
+                }
 
                 transaction.update(doc(db, fromDoc), {
                     likeCount: likeDecrement,
                     likes: arrayRemove(currentUserId),
                 });
-
                 return reviewDoc.data().likes;
             });
 
@@ -118,10 +125,19 @@
 </script>
 
 {#if liked}
-    <button on:click|preventDefault={unlike}>Dislike</button>
+    <button on:click|preventDefault={unlike}>
+        <p>Unlike</p>
+    </button>
 {:else}
-    <button on:click|preventDefault={like}>Like</button>
+    <button on:click|preventDefault={like}>
+        <p>Like</p>
+    </button>
 {/if}
+<button on:click|preventDefault={() => {
+    if (browser) {
+        goto(`/`);
+    }
+}}>Comment</button>
 
 <style>
 

@@ -61,27 +61,25 @@
             const trackDoc = await getDoc(doc(db, `tracks/${$page.params.id}`));
 
             if (!trackDoc.exists()) {
+                //get multiple endpoints like track's audio features, recommendations, and artist
+                //by using axios.all()
                 axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
                     headers: {
                         Authorization: `Bearer ${userAccessToken}`
                     }
                 }).then(async (res) => {
                     const spotifyData = {
-                        album: res.data.album,
+                        album: {
+                            images: res.data.album.mimages,
+                            name: res.data.album.name,
+                            release_date: res.data.album.release_date,
+                            external_urls: res.data.album.external_urls.spotify,
+                            total_tracks: res.data.album.total_tracks,
+                        },
                         artists: res.data.artists,
-                        available_markets: res.data.available_markets,
-                        disc_number: res.data.disc_number,
                         duration_ms: res.data.duration_ms,
-                        explicit: res.data.explicit,
-                        href: res.data.href,
-                        id: res.data.id,
-                        is_local: res.data.is_local,
                         name: res.data.name,
-                        popularity: res.data.popularity,
-                        preview_url: res.data.preview_url,
                         track_number: res.data.track_number,
-                        type: res.data.type,
-                        uri: res.data.uri,
                         avgRating: 0,
                         numRatings: 0
                     };
