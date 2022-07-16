@@ -133,11 +133,6 @@
         <p>Like</p>
     </button>
 {/if}
-<button on:click|preventDefault={() => {
-    if (browser) {
-        goto(`/`);
-    }
-}}>Comment</button>
 
 <style>
 

@@ -1,4 +1,6 @@
 <script>
+	import { goto } from '$app/navigation';
+	import { browser } from '$app/env';
 	import Likes from './Likes.svelte';
 	import Rating from './Rating.svelte';
     import { doc, getDoc } from "firebase/firestore";
@@ -9,6 +11,7 @@
     export let reviewMessage;
     export let reviewAuthor;
     export let reviewDate;
+    export let showCommentText = true;
 </script>
 
 <!-- Add a max width to all of the text so it doesn't overflow or smush the image -->
@@ -28,6 +31,13 @@
     <p class="text-sm">Written on {reviewDate}</p>
     <div id="likes-comments-stats">
         <Likes fromDoc="tracks/{trackId}/reviews/{reviewAuthor}"/>
+        {#if showCommentText}
+            <button on:click|preventDefault={() => {
+                if (browser) {
+                    goto(`/`);
+                }
+            }}>Comment</button>
+        {/if}
     </div>
 </div>
 <div class="divider"></div>

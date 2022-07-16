@@ -2,17 +2,20 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { auth, db } from "../firebase.js";
-    import { writeBatch, arrayUnion, arrayRemove, getDocs, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+    import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc } from 'firebase/firestore';
     import { onMount } from 'svelte';
+    import Comment from './Comment.svelte';
 
-    export let docName;
-    export let docCategory;
-    let userData = "";
+    export let fromCollection;
+    export let fromDoc;
+    let currentUserId = "";
     let comments = [];
+    let commentMessage = "";
+    let userLoaded = false;
 
     onMount(() => {
         loginToFirebase();
-    })
+    });
 
     function getCurrentUser() {
         return new Promise((resolve, reject) => {
@@ -27,12 +30,25 @@
         })
     }
 
+    function addToComments(data) {
+        comments.push(data);
+        comments = comments;
+    }
+
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
-            userData = user;
-            const allComments = await getDoc(doc(db, `comments/${docName}-${docCategory}`));
-            comments = allComments.data().comments;
+            currentUserId = user.uid;
+            
+            const allCommentsRef = collection(db, fromCollection);
+            const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"));
+            const allComments = await getDocs(allCommentsQuery);
+
+            if (!allComments.empty) {
+                allComments.forEach((doc) => {
+                    addToComments(doc.data());
+                });
+            }
         } else {
             if (browser) {
                 goto("/error");
@@ -41,19 +57,11 @@
     }
 
     async function submitComment(comment) {
-        const batch = writeBatch();
-        const commentData = {
+        await setDoc(doc(db, fromDoc), {
             comment,
             timestamp: serverTimestamp(),
-            author: userData.uid,
-        }
-        batch.update(doc(db, `users/${userData.uid}/comments/${docName}-${docCategory}`), {
-            comments: arrayUnion(commentData)
+            author: currentUserId
         });
-        batch.update(doc(db, `comments/${docName}-${docCategory}`), {
-            comments: arrayUnion(commentData)
-        });
-        await batch.commit();
 
         if (browser) {
             location.reload();
@@ -61,20 +69,7 @@
     }
 
     async function deleteComment(comment) {
-        const batch = writeBatch();
-        const commentData = {
-            comment,
-            timestamp: serverTimestamp(),
-            author: userData.uid,
-        }
-        batch.delete(doc(db, `users/${userData.uid}/comments/${docName}-${docCategory}`), {
-            comments: arrayRemove(commentData)
-        });
-        batch.delete(doc(db, `comments/${docName}-${docCategory}`), {
-            comments: arrayRemove(commentData)
-        });
-        await batch.commit();
-
+        await deleteDoc(doc(db, fromDoc));
         if (browser) {
             location.reload();
         }
@@ -86,6 +81,23 @@
     and also to comments/{prop of doc name} into an array
     for use on the specified page
  -->
+
+<form action="" on:submit|preventDefault>
+    <div class="w-10/12 pb-2">
+        <textarea class="hover:-translate-y-1 focus:drop-shadow-xl transition-all textarea textarea-bordered w-full" bind:value={commentMessage} required placeholder="Comment..." cols="20" rows="10"></textarea>
+    </div>
+    <button class="hover:-translate-y-1 transition-all font-bold btn btn-info btn-sm" on:click|preventDefault={() => {
+        if (!commentMessage || commentMessage.length === 0) {
+            //insert tooltips
+        } else {
+            submitComment(commentMessage);
+        }
+    }}>Submit</button>
+</form>
+
+{#each comments as comment}
+    <Comment commentMessage={comment.comment} commentAuthor={comment.author} commentDate={comment.timestamp}/>
+{/each}
 
 <style>
     

@@ -1,4 +1,5 @@
 <script>
+	import Navbar from './../../components/Navbar.svelte';
 	import Rating from './../../components/Rating.svelte';
     import TrackReview from "../../components/TrackReview.svelte";
     import { page } from "$app/stores";
@@ -61,32 +62,50 @@
             const trackDoc = await getDoc(doc(db, `tracks/${$page.params.id}`));
 
             if (!trackDoc.exists()) {
-                //get multiple endpoints like track's audio features, recommendations, and artist
-                //by using axios.all()
-                axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
+                const trackPage = axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
                     headers: {
                         Authorization: `Bearer ${userAccessToken}`
                     }
-                }).then(async (res) => {
+                });
+                const trackFeatures = axios.get(`https://api.spotify.com/v1/audio-features/${$page.params.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${userAccessToken}`
+                    }
+                });
+                axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
+                    const trackPageData = res[0];
+                    const trackFeaturesData = res[1];
                     const spotifyData = {
                         album: {
-                            images: res.data.album.mimages,
-                            name: res.data.album.name,
-                            release_date: res.data.album.release_date,
-                            external_urls: res.data.album.external_urls.spotify,
-                            total_tracks: res.data.album.total_tracks,
+                            images: trackPageData.data.album.images,
+                            name: trackPageData.data.album.name,
+                            artists: trackPageData.data.album.artists,
+                            release_date: trackPageData.data.album.release_date,
+                            external_urls: trackPageData.data.album.external_urls.spotify,
+                            total_tracks: trackPageData.data.album.total_tracks,
                         },
-                        artists: res.data.artists,
-                        duration_ms: res.data.duration_ms,
-                        name: res.data.name,
-                        track_number: res.data.track_number,
+                        analysis: {
+                            tempo: trackFeaturesData.data.tempo,
+                            time_signature: trackFeaturesData.data.time_signature,
+                            key: trackFeaturesData.data.key,
+                        },
+                        features: {
+                            loudness: trackFeaturesData.data.loudness,
+                            acousticness: trackFeaturesData.data.acousticness,
+                            danceability: trackFeaturesData.data.danceability,
+                            energy: trackFeaturesData.data.energy,
+                            valence: trackFeaturesData.data.valence,
+                        },
+                        duration_ms: trackPageData.data.duration_ms,
+                        name: trackPageData.data.name,
+                        track_number: trackPageData.data.track_number,
                         avgRating: 0,
                         numRatings: 0
                     };
 
                     await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
                     trackData = spotifyData;
-                }).catch(err => {
+                })).catch(err => {
                     if (browser) {
                         goto("/error");
                     }
@@ -101,6 +120,14 @@
         }
     }
 </script>
+
+<Navbar/>
+<div class="mx-6 mt-2 text-sm breadcrumbs">
+    <ul>
+        <li>Tracks</li>
+        <li>{trackData?.name}</li>
+    </ul>
+</div>
 
 <div bind:this={detailElement} class="flex sticky top-[-1px] justify-start">
     <img on:load={() => {
