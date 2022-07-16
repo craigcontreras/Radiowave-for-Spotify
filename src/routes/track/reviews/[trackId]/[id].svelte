@@ -1,4 +1,6 @@
 <script>
+	import Navbar from './../../../../components/Navbar.svelte';
+	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
 	import Review from './../../../../components/Review.svelte';
 	import Comments from './../../../../components/Comments.svelte';
 	import { goto } from '$app/navigation';
@@ -14,6 +16,7 @@
 
     let reviewDetails = {};
     let trackDetails = {};
+    let reviewLikes = [];
 
     onMount(() => {
         loginToFirebase();
@@ -40,6 +43,7 @@
             const reviewDoc = await getDoc(doc(db, `tracks/${$page.params.trackId}/reviews/${$page.params.id}`));
             if (reviewDoc.exists()) {
                 reviewExists = true;
+                reviewLikes = reviewDoc.data().likes;
             } else {
                 if (browser) {
                     goto("/error");
@@ -63,6 +67,7 @@
     }
 </script>
 
+<Navbar/>
 <div class="mx-6">
     <div class="my-2 text-sm breadcrumbs">
         <ul>
@@ -78,7 +83,20 @@
         <h2 class="text-md font-bold">by {trackDetails?.album?.artists[0]?.name}</h2>
         <h3 class="text-sm font-medium">on {trackDetails?.album?.name}</h3>
     </div>
-    <Review showCommentText={false} trackId={$page.params.trackId} reviewRating={reviewDetails?.rating} reviewAuthor={reviewDetails?.author} reviewMessage={reviewDetails?.message} reviewDate={reviewDetails?.date}/>
+    <Review showLikeText={false} showCommentText={false} trackId={$page.params.trackId} reviewRating={reviewDetails?.rating} reviewAuthor={reviewDetails?.author} reviewMessage={reviewDetails?.message} reviewDate={reviewDetails?.date}/>
+    <h2 class="text-lg font-bold">Likes ({reviewDetails?.likeCount})</h2>
+    <div id="likes" class="grid mt-2 grid-flow-row-dense grid-cols-12 gap-1">
+        {#each reviewLikes as like}
+            {#await getDoc(doc(db, `users/${like}`))}
+                <UserThumbnail imgSrc="" username={like}/>
+            {:then data}
+                <UserThumbnail imgSrc={data.get("photoURL")} username={like}/>
+            {:catch err}
+                <UserThumbnail imgSrc="" username={like}/>
+            {/await}
+        {/each}  
+    </div>
+    <div class="divider"></div>
 </div>
 
 {#if reviewExists}

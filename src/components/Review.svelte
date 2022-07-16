@@ -11,6 +11,7 @@
     export let reviewMessage;
     export let reviewAuthor;
     export let reviewDate;
+    export let showLikeText = true;
     export let showCommentText = true;
 </script>
 
@@ -30,7 +31,9 @@
     <p class="text-lg">{reviewMessage}</p>
     <p class="text-sm">Written on {reviewDate}</p>
     <div id="likes-comments-stats">
-        <Likes fromDoc="tracks/{trackId}/reviews/{reviewAuthor}"/>
+        {#if showLikeText}
+            <Likes fromDoc="tracks/{trackId}/reviews/{reviewAuthor}"/>
+        {/if}
         {#if showCommentText}
             <button on:click|preventDefault={() => {
                 if (browser) {

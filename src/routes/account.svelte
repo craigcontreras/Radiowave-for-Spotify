@@ -1,4 +1,5 @@
 <script>
+	import Navbar from './../components/Navbar.svelte';
     //implement latest plays component later
 	import { browser } from '$app/env';
     import { db, auth } from '../firebase';
@@ -46,6 +47,7 @@
     })
 </script>
 
+<Navbar/>
 {#if userLoaded}
     <p>Signed in as {userInfo.displayName}</p>
     
