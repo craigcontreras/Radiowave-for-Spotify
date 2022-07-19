@@ -5,6 +5,30 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+exports.labelIndexing = functions.firestore
+    .document("labels/{labelId}")
+    .onCreate(async (change, context) => {
+        const labelId = context.params.labelId;
+        const label = change.data();
+        const searchableIndex = createIndex(label.name);
+        const indexedLabel = { ...label, searchableIndex };
+        return db.collection("labels").doc(labelId).set(indexedLabel, { merge: true });
+    });
+
+function createIndex(title) {
+    const arr = title.toLowerCase().split("");
+    const searchableIndex = {};
+    let prevKey = "";
+
+    for (const char of arr) {
+        const key = prevKey + char;
+        searchableIndex[key] = true;
+        prevKey = key;
+    }
+
+    return searchableIndex;
+}
+
 exports.aggregateDeletedRatings = functions.firestore
     .document("tracks/{trackId}/reviews/{uid}")
     .onDelete(async (change, context) => {

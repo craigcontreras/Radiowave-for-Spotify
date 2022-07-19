@@ -6,6 +6,7 @@
     import { getStores } from "$app/stores";
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
+    import Footer from '../components/Footer.svelte';
 
     let userInfo = {};
     let userLoaded = false;
@@ -57,6 +58,7 @@
 {:else}
     <p>Not signed in</p>
 {/if}
+<Footer/>
 
 <style>
 </style>

@@ -1,5 +1,4 @@
 <script>
-	import Navbar from './../../../../components/Navbar.svelte';
 	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
 	import Review from './../../../../components/Review.svelte';
 	import Comments from './../../../../components/Comments.svelte';
@@ -67,12 +66,11 @@
     }
 </script>
 
-<Navbar/>
 <div class="mx-6">
     <div class="my-2 text-sm breadcrumbs">
         <ul>
-            <li>Tracks</li>
-            <li>{trackDetails?.name}</li>
+            <li><a href="/track/top/{new Date().getFullYear()}">Tracks</a></li>
+            <li><a href="/track/{$page.params.trackId}">{trackDetails?.name}</a></li>
             <li>Reviews</li>
             <li>{$page.params.id}</li>
         </ul>

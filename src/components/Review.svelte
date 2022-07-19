@@ -11,6 +11,7 @@
     export let reviewMessage;
     export let reviewAuthor;
     export let reviewDate;
+    export let commentHref;
     export let showLikeText = true;
     export let showCommentText = true;
 </script>
@@ -37,7 +38,7 @@
         {#if showCommentText}
             <button on:click|preventDefault={() => {
                 if (browser) {
-                    goto(`/`);
+                    goto(commentHref);
                 }
             }}>Comment</button>
         {/if}

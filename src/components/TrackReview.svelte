@@ -157,7 +157,7 @@
 
 <div id="reviews">
     {#each allTrackReviews as review}
-        <Review {trackId} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} reviewDate={review.date} />
+        <Review commentHref="/track/reviews/{trackId}/{review.author}" {trackId} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} reviewDate={review.date} />
     {/each}
 </div>
 
