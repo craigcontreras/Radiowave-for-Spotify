@@ -1,13 +1,17 @@
 <script>
+	import InputWithTypeahead from './../../components/InputWithTypeahead.svelte';
 	import Rating from './../../components/Rating.svelte';
     import TrackReview from "../../components/TrackReview.svelte";
+    import find, { name } from "lodash/find.js";
+    import remove from "lodash/remove.js";
     import { page } from "$app/stores";
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore";
+    import { doc, getDoc, setDoc } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
+    import { v4 as uuidv4 } from "uuid";
 
     let userLoaded = false;
     let inChangeMode = false;
@@ -16,13 +20,40 @@
     let danceability = "N/A";
     let energy = "N/A";
     let valence = "N/A";
-    let proposedLabel = "";
-    let proposedGenre = "";
-    let proposedProducers = "";
-    let proposedWriters = "";
+
+    //handling track details
+    
+    //only shown in change mode
+    let proposedLabels = [];
+    let proposedGenre = [];
+    let proposedProducers = [];
+    let proposedWriters = [];
+
+    let currentLabelText = "";
+    let currentGenreText = "";
+    let currentProducerText = "";
+    let currentWriterText = "";
+
+    let hideTypeaheadCreateForLabels = true;
+    let hideTypeaheadCreateForGenres = true;
+    let hideTypeaheadCreateForProducers = true;
+    let hideTypeaheadCreateForWriters = true;
+
+    let autocompleteResultsForLabels = [];
+    let autocompleteResultsForGenres = [];
+    let autocompleteResultsForProducers = [];
+    let autocompleteResultsForWriters = [];
+
+    //public
+    let publicLabels = [];
+    let publicGenre = [];
+    let publicProducers = [];
+    let publicWriters = [];
+
     let duration = "";
     let trackData = {};
-    let autocompleteResults = [];
+
+    const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 
     //svelte binding elements for dom
     let detailElement;
@@ -110,7 +141,11 @@
                         name: trackPageData.data.name,
                         track_number: trackPageData.data.track_number,
                         avgRating: 0,
-                        numRatings: 0
+                        numRatings: 0,
+                        label: [],
+                        producers: [],
+                        writers: [],
+                        genre: [],
                     };
 
                     await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
@@ -120,6 +155,10 @@
                     matchEnergy();
                     matchValence();
                     duration = millisToMinutesAndSeconds(trackData?.duration_ms);
+                    publicLabels = trackData?.label;
+                    publicGenre = trackData?.genre;
+                    publicProducers = trackData?.producers;
+                    publicWriters = trackData?.writers;
                 })).catch(err => {
                     if (browser) {
                         goto("/error");
@@ -132,6 +171,10 @@
                 matchEnergy();
                 matchValence();
                 duration = millisToMinutesAndSeconds(trackData?.duration_ms);
+                publicLabels = trackData?.label;
+                publicGenre = trackData?.genre;
+                publicWriters = trackData?.writers;
+                publicProducers = trackData?.producers;
             }
         } else {
             if (browser) {
@@ -223,18 +266,26 @@
     function enterChangeMode() {
         if (!inChangeMode) {
             inChangeMode = true;
-            proposedLabel = trackData?.label;
-            proposedGenre = trackData?.genre || "N/A";
-            proposedProducers = trackData?.producers || "N/A";
-            proposedWriters = trackData?.writers || "N/A";
+            currentLabelText = "";
+            currentGenreText = "";
+            currentProducerText = "";
+            currentWriterText = "";
         } else {
             inChangeMode = false;
+            hideTypeaheadCreateForLabels = true;
+            hideTypeaheadCreateForGenres = true;
+            hideTypeaheadCreateForProducers = true;
+            hideTypeaheadCreateForWriters = true;
+            autocompleteResultsForLabels = [];
+            autocompleteResultsForGenres = [];
+            autocompleteResultsForProducers = [];
+            autocompleteResultsForWriters = [];
         }
     }
 
     async function submitProposedDetails() {
         await setDoc(doc(db, `tracks/${$page.params.id}`), {
-            label: proposedLabel,
+            label: proposedLabels,
             genre: proposedGenre,
             producers: proposedProducers,
             writers: proposedWriters,
@@ -248,6 +299,134 @@
         var minutes = Math.floor(millis / 60000);
         var seconds = ((millis % 60000) / 1000).toFixed(0);
         return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+    }
+
+    function handleTypeaheadDisplayForLabels() {
+        if (!find(autocompleteResultsForLabels, {name: currentLabelText.toLowerCase()}) && currentLabelText && currentLabelText.trim() !== "") {
+            hideTypeaheadCreateForLabels = false;
+        } else {
+            hideTypeaheadCreateForLabels = true;
+        }
+    }
+
+    function handleTypeaheadSelectionForLabels(event) {
+        if (!find(proposedLabels, {text: event.detail.text})) {
+            proposedLabels.push({text: event.detail.text, id: event.detail.id});
+            proposedLabels = proposedLabels;
+            currentLabelText = "";
+            hideTypeaheadCreateForLabels = true;
+            autocompleteResultsForLabels = [];
+        }
+    }
+
+    async function handleTypeaheadCreationForLabels(event) {
+        if (!find(proposedLabels, {text: currentLabelText}) && currentLabelText && currentLabelText.trim() !== "") {
+            const uuid = uuidv4();
+            await setDoc(doc(db, `labels/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`), {
+                name: currentLabelText,
+            });
+            proposedLabels.push({text: currentLabelText, id: `labels/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedLabels = proposedLabels;
+            currentLabelText = "";
+            hideTypeaheadCreateForLabels = true;
+            autocompleteResultsForLabels = [];
+        }
+    }
+
+    function handleTypeaheadDisplayForGenres() {
+        if (!find(autocompleteResultsForGenres, {name: currentGenreText.toLowerCase()}) && currentGenreText && currentGenreText.trim() !== "") {
+            hideTypeaheadCreateForGenres = false;
+        } else {
+            hideTypeaheadCreateForGenres = true;
+        }
+    }
+
+    function handleTypeaheadSelectionForGenres(event) {
+        if (!find(proposedGenre, {text: event.detail.text})) {
+            proposedGenre.push({text: event.detail.text, id: event.detail.id});
+            proposedGenre = proposedGenre;
+            currentGenreText = "";
+            hideTypeaheadCreateForGenres = true;
+            autocompleteResultsForGenres = [];
+        }
+    }
+
+    async function handleTypeaheadCreationForGenres(event) {
+        if (!find(proposedGenre, {text: currentGenreText}) && currentGenreText && currentGenreText.trim() !== "") {
+            const uuid = uuidv4();
+            await setDoc(doc(db, `genres/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`), {
+                name: currentGenreText,
+            });
+            proposedGenre.push({text: currentGenreText, id: `genres/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedGenre = proposedGenre;
+            currentGenreText = "";
+            hideTypeaheadCreateForGenres = true;
+            autocompleteResultsForGenres = [];
+        }
+    }
+
+    function handleTypeaheadDisplayForProducers() {
+        if (!find(autocompleteResultsForProducers, {name: currentProducerText.toLowerCase()}) && currentProducerText && currentProducerText.trim() !== "") {
+            hideTypeaheadCreateForProducers = false;
+        } else {
+            hideTypeaheadCreateForProducers = true;
+        }
+    }
+
+    function handleTypeaheadSelectionForProducers(event) {
+        if (!find(proposedProducers, {text: event.detail.text})) {
+            proposedProducers.push({text: event.detail.text, id: event.detail.id});
+            proposedProducers = proposedProducers;
+            currentProducerText = "";
+            hideTypeaheadCreateForProducers = true;
+            autocompleteResultsForProducers = [];
+        }
+    }
+
+    async function handleTypeaheadCreationForProducers(event) {
+        if (!find(proposedProducers, {text: currentProducerText}) && currentProducerText && currentProducerText.trim() !== "") {
+            const uuid = uuidv4();
+            await setDoc(doc(db, `producers/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`), {
+                name: currentProducerText,
+            });
+            proposedProducers.push({text: currentProducerText, id: `producers/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedProducers = proposedProducers;
+            currentProducerText = "";
+            hideTypeaheadCreateForProducers = true;
+            autocompleteResultsForProducers = [];
+        }
+    }
+
+    function handleTypeaheadDisplayForWriters() {
+        if (!find(autocompleteResultsForWriters, {name: currentWriterText.toLowerCase()}) && currentWriterText && currentWriterText.trim() !== "") {
+            hideTypeaheadCreateForWriters = false;
+        } else {
+            hideTypeaheadCreateForWriters = true;
+        }
+    }
+
+    function handleTypeaheadSelectionForWriters(event) {
+        if (!find(proposedWriters, {text: event.detail.text})) {
+            proposedWriters.push({text: event.detail.text, id: event.detail.id});
+            proposedWriters = proposedWriters;
+            currentWriterText = "";
+            hideTypeaheadCreateForWriters = true;
+            autocompleteResultsForWriters = [];
+        }
+    }
+
+    async function handleTypeaheadCreationForWriters(event) {
+        if (!find(proposedWriters, {text: currentWriterText}) && currentWriterText && currentWriterText.trim() !== "") {
+            const uuid = uuidv4();
+            await setDoc(doc(db, `writers/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`), {
+                name: currentWriterText,
+            });
+            proposedWriters.push({text: currentWriterText, id: `writers/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedWriters = proposedWriters;
+            currentWriterText = "";
+            hideTypeaheadCreateForWriters = true;
+            autocompleteResultsForWriters = [];
+        }
     }
 </script>
 
@@ -295,36 +474,81 @@
                         location.reload();
                     }
                 }}>
-                    <p class="italic text-gray-400">label <span class="not-italic text-white pl-1" class:hidden={inChangeMode}>{trackData?.label || "N/A"}</span><input required on:keyup={async () => {
-                        if (proposedLabel !== "" || proposedLabel) {
-                            const labelRef = collection(db, "labels");
-                            const labelQuery = query(labelRef, orderBy(`searchableIndex.${proposedLabel.toLowerCase()}`), limit(5));
-                            const labels = await getDocs(labelQuery);
-                            let temp = [];
+                    <p class="italic text-gray-400">label 
+                        {#each publicLabels as label}
+                            <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
+                        {/each}
+                        {#each proposedLabels as label}
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                                <a class="text-center" href="/{label.id}">{label.text} </a>
+                                <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                    remove(proposedLabels, {
+                                        text: label.text,
+                                    });
+                                    proposedLabels = proposedLabels;
+                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                            </span>
+                        {/each}
+                        <InputWithTypeahead collectionType="labels" on:handleTypeaheadCreation={handleTypeaheadCreationForLabels} bind:hideTypeaheadCreate={hideTypeaheadCreateForLabels} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForLabels} bind:currentLabelText={currentLabelText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForLabels} bind:autocompleteResults={autocompleteResultsForLabels}/>
+                    </p>
+                    <p class="italic text-gray-400">genres 
+                        {#each publicGenre as genre}
+                            <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
+                        {/each}
+                        {#each proposedGenre as genre}
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                                <a class="text-center" href="/{genre.id}">{genre.text} </a>
+                                <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                    remove(proposedGenre, {
+                                        text: genre.text,
+                                    });
+                                    proposedGenre = proposedGenre;
+                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                            </span>
+                        {/each}
+                        <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>
+                    </p>
+                    <p class="italic text-gray-400">producers 
+                        {#each publicProducers as producer}
+                            <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
+                        {/each}
+                        {#each proposedProducers as producer}
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                                <a class="text-center" href="/{producer.id}">{producer.text} </a>
+                                <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                    remove(proposedProducers, {
+                                        text: producer.text,
+                                    });
+                                    proposedProducers = proposedProducers;
+                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                            </span>
+                        {/each}
+                        <InputWithTypeahead collectionType="producers" on:handleTypeaheadCreation={handleTypeaheadCreationForProducers} bind:hideTypeaheadCreate={hideTypeaheadCreateForProducers} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForProducers} bind:currentLabelText={currentProducerText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForProducers} bind:autocompleteResults={autocompleteResultsForProducers}/>
+                    </p>                    
 
-                            labels.forEach(doc => {
-                                temp.push({
-                                    name: doc.data().name,
-                                    id: doc.id,
-                                });
-                                temp = temp;
-                                autocompleteResults = temp;
-                            });
-                        }
-                    }} bind:value={proposedLabel} class="pl-1 bg-transparent text-white italic" class:hidden={!inChangeMode} placeholder="type here..." type="text"></p>
-                    <p class="italic text-gray-400">genres <span class="not-italic text-white pl-1" class:hidden={inChangeMode}>{trackData?.genre || "N/A"}</span><input required bind:value={proposedGenre} class="pl-1 bg-transparent text-white italic" class:hidden={!inChangeMode} placeholder="type here..." type="text"></p>
-                    <p class="italic text-gray-400">producers <span class="not-italic text-white pl-1" class:hidden={inChangeMode}>{trackData?.producers || "N/A"}</span><input required bind:value={proposedProducers} class="pl-1 bg-transparent text-white italic" class:hidden={!inChangeMode} placeholder="type here..." type="text"></p>
-                    <p class="italic text-gray-400">writers <span class="not-italic text-white pl-1" class:hidden={inChangeMode}>{trackData?.writers || "N/A"}</span><input required bind:value={proposedWriters} class="pl-1 bg-transparent text-white italic" class:hidden={!inChangeMode} placeholder="type here..." type="text"></p>    
-                    <button class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
+                    <p class="italic text-gray-400">writers 
+                        {#each publicWriters as writer}
+                            <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
+                        {/each}
+                        {#each proposedWriters as writer}
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                                <a class="text-center" href="/{writer.id}">{writer.text} </a>
+                                <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                    remove(proposedWriters, {
+                                        text: writer.text,
+                                    });
+                                    proposedWriters = proposedWriters;
+                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                            </span>
+                        {/each}
+                        <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
+                    </p>  
+                    <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-{#each autocompleteResults as result}
-    {result.name}
-{/each}
 
 <div class="mx-6 divider"></div>
 <div class="mx-6" id="track-analysis-features">

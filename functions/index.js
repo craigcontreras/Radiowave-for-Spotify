@@ -15,6 +15,36 @@ exports.labelIndexing = functions.firestore
         return db.collection("labels").doc(labelId).set(indexedLabel, { merge: true });
     });
 
+exports.genreIndexing = functions.firestore
+    .document("genres/{genreId}")
+    .onCreate(async (change, context) => {
+        const genreId = context.params.genreId;
+        const label = change.data();
+        const searchableIndex = createIndex(label.name);
+        const indexedLabel = { ...label, searchableIndex };
+        return db.collection("genres").doc(genreId).set(indexedLabel, { merge: true });
+    });
+
+exports.producerIndexing = functions.firestore
+    .document("producers/{producerId}")
+    .onCreate(async (change, context) => {
+        const producerId = context.params.producerId;
+        const label = change.data();
+        const searchableIndex = createIndex(label.name);
+        const indexedLabel = { ...label, searchableIndex };
+        return db.collection("producers").doc(producerId).set(indexedLabel, { merge: true });
+    });
+
+exports.writerIndexing = functions.firestore
+    .document("writers/{writerId}")
+    .onCreate(async (change, context) => {
+        const writerId = context.params.writerId;
+        const label = change.data();
+        const searchableIndex = createIndex(label.name);
+        const indexedLabel = { ...label, searchableIndex };
+        return db.collection("writers").doc(writerId).set(indexedLabel, { merge: true });
+    });
+
 function createIndex(title) {
     const arr = title.toLowerCase().split("");
     const searchableIndex = {};
