@@ -111,12 +111,45 @@ app.get("/callback", (req, res) => {
             const access = response.data.access_token;
 
             //creating or updating the users firebase account
-            axios.get(`https://api.spotify.com/v1/me`, {
+            const spotifyMe = axios.get(`https://api.spotify.com/v1/me`, {
                 headers: {
                     Authorization: `Bearer ${access}`
                 }
-            }).then(async (userData) => {
-                const customToken = await createFirebaseAccount(userData.data.id, access, refresh, userData.data.display_name, userData.data.images[0].url, userData.data.email);
+            });
+            const spotifyTopTracks = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
+                params : {
+                    time_range: "short_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            const spotifyTopArtists = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
+                params : {
+                    time_range: "short_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            axios.all([spotifyMe, spotifyTopTracks, spotifyTopArtists]).then(axios.spread(async (...allResponses) => {
+                const userData = allResponses[0];
+                const topTracks = allResponses[1];
+                const topArtists = allResponses[2];
+                
+                let tracks = [];
+
+                for (let track of topTracks.data.items) {
+                    tracks.push(track.id);
+                }
+                
+                let artists = [];
+
+                for (let artist of topArtists.data.items) {
+                    artists.push(artist.id);
+                }
+
+                const customToken = await createFirebaseAccount(userData.data.id, access, refresh, userData.data.display_name, userData.data.images[0].url, userData.data.email, tracks, artists);
                 const customTokenEncrypted = encryption.encrypt(customToken);
                 res.cookie("access_firebase", customTokenEncrypted, {
                     secure: true,
@@ -125,7 +158,7 @@ app.get("/callback", (req, res) => {
                 });
                 startCronJobs(access, refresh, userData.data.uid);
                 res.redirect("/signin");
-            });
+            }));
         });
     }
 })
@@ -137,7 +170,7 @@ app.listen(3000, () => {
 });
 
 //firebase functions
-async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email) {
+async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists) {
     const createAccount = getAuth().updateUser(uuid, {
         email,
         emailVerified: true,
@@ -161,6 +194,8 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
         photoURL,
         access,
         refresh,
+        topTracks,
+        topArtists
     });
 
     const token = await getAuth().createCustomToken(uuid);

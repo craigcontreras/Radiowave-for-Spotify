@@ -22,7 +22,6 @@
     <p class="text-lg">{commentMessage}</p>
     <p class="text-sm">Written on {new Date(commentDate?.seconds * 1000)}</p>
 </div>
-<div class="divider"></div>
 
 <style>
 

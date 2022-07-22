@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { auth, db } from "../firebase.js";
-    import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc } from 'firebase/firestore';
+    import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc, limit, startAfter } from 'firebase/firestore';
     import { onMount } from 'svelte';
     import Comment from './Comment.svelte';
 
@@ -12,10 +12,27 @@
     let comments = [];
     let commentMessage = "";
     let userLoaded = false;
+    let lastVisible;
+    let currentCommentSize;
 
     onMount(() => {
         loginToFirebase();
     });
+
+    async function paginateData() {
+        if (lastVisible || currentCommentSize < 5) {    
+            const allCommentsRef = collection(db, fromCollection);
+            const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"), startAfter(lastVisible), limit(5));
+            const allComments = await getDocs(allCommentsQuery);
+
+            lastVisible = allComments.docs[allComments.docs.length - 1];
+            currentCommentSize = allComments.docs.length;
+
+            allComments.forEach((doc) => {
+                addToComments(doc.data());
+            });
+        }
+    }
 
     function getCurrentUser() {
         return new Promise((resolve, reject) => {
@@ -41,8 +58,11 @@
             currentUserId = user.uid;
             
             const allCommentsRef = collection(db, fromCollection);
-            const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"));
+            const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"), limit(5));
             const allComments = await getDocs(allCommentsQuery);
+
+            lastVisible = allComments.docs[allComments.docs.length - 1];
+            currentCommentSize = allComments.docs.length;
 
             if (!allComments.empty) {
                 allComments.forEach((doc) => {
@@ -95,9 +115,14 @@
     }}>Submit</button>
 </form>
 
-{#each comments as comment}
-    <Comment commentMessage={comment.comment} commentAuthor={comment.author} commentDate={comment.timestamp}/>
-{/each}
+<div class="comments">
+    {#each comments as comment}
+        <Comment commentMessage={comment.comment} commentAuthor={comment.author} commentDate={comment.timestamp}/>
+    {/each}
+    {#if currentCommentSize >= 5}
+        <button class="text-center py-4 px-8 bg-slate-700 hover:-translate-y-1 drop-shadow-lg rounded-lg transition-all" on:click={paginateData}>Load more comments</button>
+    {/if}
+</div>
 
 <style>
     

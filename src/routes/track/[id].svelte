@@ -4,7 +4,7 @@
 	import InputWithTypeahead from './../../components/InputWithTypeahead.svelte';
 	import Rating from './../../components/Rating.svelte';
     import TrackReview from "../../components/TrackReview.svelte";
-    import find, { name } from "lodash/find.js";
+    import find from "lodash/find.js";
     import remove from "lodash/remove.js";
     import { page } from "$app/stores";
 	import axios from 'axios';
@@ -16,6 +16,8 @@
     import { v4 as uuidv4 } from "uuid";
     import Icon from "svelte-awesome";
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
+    import Comments from '../../components/Comments.svelte';
+    import { slide } from "svelte/transition";
 
     let userLoaded = false;
     let inChangeMode = false;
@@ -73,6 +75,13 @@
 
     let moreTracks = [];
     let moreTracksByArtist = [];
+
+    //recommendations
+    let genresForRecommendations = [];
+    let recommendedTracks = [];
+
+    let userActivity = [];
+    let commentCollapsed = true;
     
     onMount(() => {
         loginToFirebase();
@@ -159,6 +168,7 @@
                         producers: [],
                         writers: [],
                         genre: [],
+                        genreNames: []
                     };
 
                     await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
@@ -172,6 +182,7 @@
                     publicGenre = trackData?.genre;
                     publicProducers = trackData?.producers;
                     publicWriters = trackData?.writers;
+                    genresForRecommendations = trackData?.genreNames;
 
                     const tracksByArtistRef = collection(db, `tracks`);
                     const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
@@ -185,6 +196,8 @@
                         });
                         moreTracksByArtist = moreTracksByArtist;
                     });
+                    findRecommendations();
+                    findUserActivity();
                 })).catch(err => {
                     if (browser) {
                         goto("/error");
@@ -201,6 +214,7 @@
                 publicGenre = trackData?.genre;
                 publicWriters = trackData?.writers;
                 publicProducers = trackData?.producers;
+                genresForRecommendations = trackData?.genreNames;
 
                 const tracksByArtistRef = collection(db, `tracks`);
                 const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
@@ -214,6 +228,8 @@
                     });
                     moreTracksByArtist = moreTracksByArtist;
                 });
+                findRecommendations();
+                findUserActivity();
             }
             
             const recentTracksRef = collection(db, `tracks`);
@@ -343,6 +359,7 @@
         await setDoc(doc(db, `tracks/${$page.params.id}`), {
             label: proposedLabels,
             genre: proposedGenre,
+            genreNames: genresForRecommendations,
             producers: proposedProducers,
             writers: proposedWriters,
         }, {
@@ -401,7 +418,9 @@
     function handleTypeaheadSelectionForGenres(event) {
         if (!find(proposedGenre, {text: event.detail.text})) {
             proposedGenre.push({text: event.detail.text, id: `genre/${event.detail.id}`});
+            genresForRecommendations.push(event.detail.text);
             proposedGenre = proposedGenre;
+            genresForRecommendations = genresForRecommendations;
             currentGenreText = "";
             hideTypeaheadCreateForGenres = true;
             autocompleteResultsForGenres = [];
@@ -416,7 +435,9 @@
                 id: `genre/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`
             });
             proposedGenre.push({text: currentGenreText, id: `genre/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`});
+            genresForRecommendations.push(currentGenreText);
             proposedGenre = proposedGenre;
+            genresForRecommendations = genresForRecommendations;
             currentGenreText = "";
             hideTypeaheadCreateForGenres = true;
             autocompleteResultsForGenres = [];
@@ -487,6 +508,73 @@
             hideTypeaheadCreateForWriters = true;
             autocompleteResultsForWriters = [];
         }
+    }
+
+    async function findRecommendations() {
+        if (genresForRecommendations.length === 0) return;
+        const newArr = genresForRecommendations.filter((item, index) => {
+            return index <= 9;
+        });
+        
+        const recommendedTracksRef = collection(db, `tracks`);
+        const recommendedTracksDanceability = query(recommendedTracksRef, 
+            where("genreNames", "array-contains-any", newArr), 
+            where("features.danceability", ">=", trackData?.features?.danceability - .1), 
+            where("features.danceability", "<", trackData?.features?.danceability + .1), 
+            orderBy("features.danceability", "desc"),
+            limit(10));
+        const recommendedTracksDanceabilityDocs = await getDocs(recommendedTracksDanceability);
+        
+        const recommendedTracksEnergy = query(recommendedTracksRef, 
+            where("genreNames", "array-contains-any", newArr), 
+            where("features.energy", ">=", trackData?.features?.energy - .1), 
+            where("features.energy", "<", trackData?.features?.energy + .1), 
+            orderBy("features.energy", "desc"),
+            limit(10));
+        const recommendedTracksEnergyDocs = await getDocs(recommendedTracksEnergy);
+
+        const recommendedTracksHappiness = query(recommendedTracksRef, 
+            where("genreNames", "array-contains-any", newArr), 
+            where("features.valence", ">=", trackData?.features?.valence - .1), 
+            where("features.valence", "<", trackData?.features?.valence + .1), 
+            orderBy("features.valence", "desc"),
+            limit(10));
+        const recommendedTracksHappinessDocs = await getDocs(recommendedTracksHappiness);
+
+        recommendedTracksDanceabilityDocs.forEach(doc => {
+            if (!find(recommendedTracks, {id: doc.id})) {
+                recommendedTracks.push({...doc.data(), id: doc.id});
+                recommendedTracks = recommendedTracks;
+            }
+        });
+
+        recommendedTracksEnergyDocs.forEach(doc => {
+            if (!find(recommendedTracks, {id: doc.id})) {
+                recommendedTracks.push({...doc.data(), id: doc.id});
+                recommendedTracks = recommendedTracks;
+            }
+        });
+
+        recommendedTracksHappinessDocs.forEach(doc => {
+            if (!find(recommendedTracks, {id: doc.id})) {
+                recommendedTracks.push({...doc.data(), id: doc.id});
+                recommendedTracks = recommendedTracks;
+            }
+        });
+    }
+
+    async function findUserActivity() {
+        const users = collection(db, `users`);
+        const userTopTracksQuery = query(users, 
+            where("topTracks", "array-contains-any", [$page.params.id]), 
+            limit(6));
+        const userTopTracks = await getDocs(userTopTracksQuery);
+        userTopTracks.forEach(doc => {
+            if (!find(userActivity, doc.id)) {
+                userActivity.push(doc.id);
+                userActivity = userActivity;
+            }
+        });
     }
 </script>
 
@@ -613,7 +701,11 @@
                                     remove(proposedGenre, {
                                         text: genre.text,
                                     });
+                                    const newArr = genresForRecommendations.filter(item => {
+                                        return item !== genre.text;
+                                    });
                                     proposedGenre = proposedGenre;
+                                    genresForRecommendations = newArr;
                                 }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
                             </span>
                         {/each}
@@ -689,6 +781,55 @@
 
 <div class="mx-6 divider"></div>
 
+{#if userActivity.length !== 0}
+    <div class="mx-6">
+        <h2 class="text-4xl font-black mb-4">User Activity</h2>
+        <div class="grid grid-flow-row-dense grid-cols-3 gap-4">
+            {#each userActivity as user}
+                {#await getDoc(doc(db, `users/${user}`))}
+                    <p>{user} listens to this track a lot</p>
+                {:then data}
+                    <a href="/user/{user}" class="drop-shadow-xl hover:-translate-y-1 transition-all">
+                        <img class="inline-block align-bottom rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
+                        <span class="pl-2 inline-block">
+                            <p class="text-xl font-bold">{data.get("displayName")}</p>
+                            <p class="text-xs">listens to {trackData?.name} a lot</p>        
+                        </span>
+                    </a>
+                {:catch err}
+                    <p>{user} listens to this track a lot</p>
+                {/await}
+            {/each}
+        </div>
+    </div>
+
+    <div class="mx-6 divider"></div>
+{/if}
+
+<div class="mx-6">
+    <h2 class="text-4xl font-black">Reviews</h2>
+    {#if trackData?.numRatings === 1}
+        <h3 class="text-2xl font-bold">{trackData?.numRatings} review</h3>
+    {:else}
+        <h3 class="text-2xl font-bold">{trackData?.numRatings} reviews</h3>
+    {/if}
+    <TrackReview trackId={$page.params.id} {userId}/>
+</div>
+
+<div class="mx-6 divider"></div>
+
+<div class="mx-6">
+    <h2 class="text-4xl align-middle font-black inline">Shoutbox</h2>
+    <button class="ml-4 px-2 py-1 bg-slate-700 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
+    {#if !commentCollapsed}
+        <div class="mt-4" transition:slide>
+            <Comments fromCollection={`tracks/${$page.params.id}/comments`} fromDoc={`tracks/${$page.params.id}/comments/${uuidv4()}`}/>
+        </div>
+    {/if}
+</div>
+
+<div class="mx-6 divider"></div>
+
 <div class="mx-6" id="track-analysis-features">
     <h2 class="text-4xl font-black mb-4">Analysis & Features</h2>
     <div class="grid grid-flow-row-dense grid-cols-3 gap-4">
@@ -732,43 +873,32 @@
 </div>
 <div class="mx-6 divider"></div>
 
-<div class="mx-6">
-    <h2 class="text-4xl font-black">Recommendations</h2>
-</div>
-
-<div class="mx-6 divider"></div>
-
-<div class="mx-6">
-    <h2 class="text-4xl font-black">User Activity</h2>
-</div>
-
-<div class="mx-6 divider"></div>
-
-<div class="mx-6">
-    <h2 class="text-4xl font-black">Reviews</h2>
-    {#if trackData?.numRatings === 1}
-        <h3 class="text-2xl font-bold">{trackData?.numRatings} review</h3>
-    {:else}
-        <h3 class="text-2xl font-bold">{trackData?.numRatings} reviews</h3>
-    {/if}
-    <TrackReview trackId={$page.params.id} {userId}/>
-</div>
-
-<div class="mx-6 divider"></div>
-
-<div class="mx-6">
-    <h2 class="text-4xl font-black mb-4">More tracks by {trackData?.album?.artists[0]?.name}</h2>
-    <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
-        {#if moreTracksByArtist.length === 0}
-            <p>Could not find any tracks made by the artist.</p>
-        {/if}
-        {#each moreTracksByArtist as track}
-            <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
-        {/each}
+{#if recommendedTracks.length > 1}
+    <div class="mx-6">
+        <h2 class="text-4xl font-black mb-4">Recommendations</h2>
+        <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
+            {#each recommendedTracks as track}
+                {#if track.id !== $page.params.id}
+                    <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.album.images[1].url} alt="" title={track.name} artist={track.album.artists[0].name}/>
+                {/if}
+            {/each}
+        </div>    
     </div>
-</div>
+    <div class="mx-6 divider"></div>
+{/if}
 
-<div class="mx-6 divider"></div>
+{#if moreTracksByArtist.length !== 0}
+    <div class="mx-6">
+        <h2 class="text-4xl font-black mb-4">More tracks by {trackData?.album?.artists[0]?.name}</h2>
+        <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto">
+            {#each moreTracksByArtist as track}
+                <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+            {/each}
+        </div>
+    </div>
+
+    <div class="mx-6 divider"></div>
+{/if}
 
 <div class="mx-6">
     <h2 class="text-4xl font-black mb-4">More tracks</h2>
