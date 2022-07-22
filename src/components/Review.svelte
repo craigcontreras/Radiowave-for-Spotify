@@ -19,18 +19,20 @@
 <!-- Add a max width to all of the text so it doesn't overflow or smush the image -->
 <div class="hover:-translate-y-1 transition-all drop-shadow-lg mt-6 mb-6 p-4 rounded-lg bg-gray-800">
     {#await getDoc(doc(db, `users/${reviewAuthor}`))}
-        <p class="text-xl font-bold">{reviewAuthor}</p>
+        <a href="/user/{reviewAuthor}"><p class="text-xl font-bold">{reviewAuthor}</p></a>
     {:then data}
-        <img class="inline-block align-middle rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
-        <p class="pl-2 inline-block text-xl font-bold">{data.get("displayName")}</p>
+        <a href="/user/{reviewAuthor}"> 
+            <img class="inline-block align-middle rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
+            <p class="pl-2 inline-block text-xl font-bold">{data.get("displayName")}</p>
+        </a>
     {:catch err}
-        <p class="text-xl font-bold">{reviewAuthor}</p>
+        <a href="/user/{reviewAuthor}"><p class="text-xl font-bold">{reviewAuthor}</p></a>
     {/await}
     <div class="py-1 origin-left scale-75 w-16">
         <Rating avgRating={reviewRating}/>
     </div>
     <p class="text-lg">{reviewMessage}</p>
-    <p class="text-sm">Written on {reviewDate}</p>
+    <p class="text-sm">Written on {new Date(reviewDate?.seconds * 1000)}</p>
     <div id="likes-comments-stats">
         {#if showLikeText}
             <Likes fromDoc="tracks/{trackId}/reviews/{reviewAuthor}"/>
@@ -44,7 +46,6 @@
         {/if}
     </div>
 </div>
-<div class="divider"></div>
 
 <style>
 

@@ -52,6 +52,7 @@
                     name: doc.data().name.toLowerCase(),
                     displayName: doc.data().name,
                     id: doc.id,
+                    href: doc.data().id,
                 });
                 temp = temp;
     

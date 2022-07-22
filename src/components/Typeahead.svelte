@@ -27,7 +27,7 @@
     }
 </script>
 
-<ul class="{classes} w-40 text-sm drop-shadow-xl">
+<ul class="{classes} max-w-[10rem] break-all w-40 text-sm drop-shadow-xl">
     <li class:hidden={hideTypeaheadCreate} on:click={createDocument} class="cursor-pointer hover:bg-slate-600 m-0 p-2 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Create "{currentLabelText}"</li>
     {#each items as item}
         <li on:click={() => {

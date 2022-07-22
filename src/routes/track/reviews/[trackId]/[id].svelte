@@ -75,11 +75,15 @@
             <li>{$page.params.id}</li>
         </ul>
     </div>
-    <img class="transition-all hover:-translate-y-1 inline-block align-middle rounded-lg outline-4 drop-shadow-xl" src={trackDetails?.album?.images[2]?.url} alt="Album cover">
+    <a href="/track/{$page.params.trackId}">
+        <img class="transition-all hover:-translate-y-1 inline-block align-middle rounded-lg outline-4 drop-shadow-xl" src={trackDetails?.album?.images[2]?.url} alt="Album cover">
+    </a>
     <div id="track-details" class="transition-all hover:-translate-y-1 mx-1 leading-4 align-middle inline-block">
-        <h1 class="text-lg font-black">{trackDetails?.name}</h1> 
-        <h2 class="text-md font-bold">by {trackDetails?.album?.artists[0]?.name}</h2>
-        <h3 class="text-sm font-medium">on {trackDetails?.album?.name}</h3>
+        <a href="/track/{$page.params.trackId}">
+            <h1 class="text-lg font-black">{trackDetails?.name}</h1> 
+            <h2 class="text-md font-bold">by {trackDetails?.album?.artists[0]?.name}</h2>
+            <h3 class="text-sm font-medium">on {trackDetails?.album?.name}</h3>    
+        </a>
     </div>
     <Review showLikeText={false} showCommentText={false} trackId={$page.params.trackId} reviewRating={reviewDetails?.rating} reviewAuthor={reviewDetails?.author} reviewMessage={reviewDetails?.message} reviewDate={reviewDetails?.date}/>
     <h2 class="text-lg font-bold">Likes ({reviewDetails?.likeCount})</h2>

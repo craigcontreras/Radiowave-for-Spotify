@@ -1,4 +1,6 @@
 <script>
+	import TrackThumbnail from './../../components/thumbnails/TrackThumbnail.svelte';
+	import Modal from './../../components/Modal.svelte';
 	import InputWithTypeahead from './../../components/InputWithTypeahead.svelte';
 	import Rating from './../../components/Rating.svelte';
     import TrackReview from "../../components/TrackReview.svelte";
@@ -8,10 +10,12 @@
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-    import { doc, getDoc, setDoc } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, limit, where } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
     import { v4 as uuidv4 } from "uuid";
+    import Icon from "svelte-awesome";
+    import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
 
     let userLoaded = false;
     let inChangeMode = false;
@@ -50,6 +54,11 @@
     let publicProducers = [];
     let publicWriters = [];
 
+    let hideModalLabels = true;
+    let hideModalGenres = true;
+    let hideModalProducers = true;
+    let hideModalWriters = true;
+
     let duration = "";
     let trackData = {};
 
@@ -61,6 +70,9 @@
 
     //intersection observer shit
     let hide = false;
+
+    let moreTracks = [];
+    let moreTracksByArtist = [];
     
     onMount(() => {
         loginToFirebase();
@@ -142,6 +154,7 @@
                         track_number: trackPageData.data.track_number,
                         avgRating: 0,
                         numRatings: 0,
+                        primary_artist: trackPageData.data.album.artists[0].name,
                         label: [],
                         producers: [],
                         writers: [],
@@ -159,6 +172,19 @@
                     publicGenre = trackData?.genre;
                     publicProducers = trackData?.producers;
                     publicWriters = trackData?.writers;
+
+                    const tracksByArtistRef = collection(db, `tracks`);
+                    const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
+                    const tracksByArtist = await getDocs(tracksByArtistQuery);
+                    tracksByArtist.forEach(doc => {
+                        moreTracksByArtist.push({
+                            name: doc.data().name,
+                            artists: doc.data().album.artists,
+                            image: doc.data().album.images[1].url,
+                            id: doc.id,
+                        });
+                        moreTracksByArtist = moreTracksByArtist;
+                    });
                 })).catch(err => {
                     if (browser) {
                         goto("/error");
@@ -175,7 +201,33 @@
                 publicGenre = trackData?.genre;
                 publicWriters = trackData?.writers;
                 publicProducers = trackData?.producers;
+
+                const tracksByArtistRef = collection(db, `tracks`);
+                const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
+                const tracksByArtist = await getDocs(tracksByArtistQuery);
+                tracksByArtist.forEach(doc => {
+                    moreTracksByArtist.push({
+                        name: doc.data().name,
+                        artists: doc.data().album.artists,
+                        image: doc.data().album.images[1].url,
+                        id: doc.id,
+                    });
+                    moreTracksByArtist = moreTracksByArtist;
+                });
             }
+            
+            const recentTracksRef = collection(db, `tracks`);
+            const recentTracksQuery = query(recentTracksRef, orderBy("avgRating", "desc"), limit(20));
+            const recentTracks = await getDocs(recentTracksQuery);
+            recentTracks.forEach(doc => {
+                moreTracks.push({
+                    name: doc.data().name,
+                    artists: doc.data().album.artists,
+                    image: doc.data().album.images[1].url,
+                    id: doc.id,
+                });
+                moreTracks = moreTracks;
+            });            
         } else {
             if (browser) {
                 goto("/error");
@@ -266,6 +318,10 @@
     function enterChangeMode() {
         if (!inChangeMode) {
             inChangeMode = true;
+            proposedLabels = publicLabels;
+            proposedGenre = publicGenre;
+            proposedWriters = publicWriters;
+            proposedProducers = publicProducers;
             currentLabelText = "";
             currentGenreText = "";
             currentProducerText = "";
@@ -311,7 +367,7 @@
 
     function handleTypeaheadSelectionForLabels(event) {
         if (!find(proposedLabels, {text: event.detail.text})) {
-            proposedLabels.push({text: event.detail.text, id: event.detail.id});
+            proposedLabels.push({text: event.detail.text, id: `label/${event.detail.id}`});
             proposedLabels = proposedLabels;
             currentLabelText = "";
             hideTypeaheadCreateForLabels = true;
@@ -324,8 +380,9 @@
             const uuid = uuidv4();
             await setDoc(doc(db, `labels/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`), {
                 name: currentLabelText,
+                id: `label/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`
             });
-            proposedLabels.push({text: currentLabelText, id: `labels/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedLabels.push({text: currentLabelText, id: `label/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedLabels = proposedLabels;
             currentLabelText = "";
             hideTypeaheadCreateForLabels = true;
@@ -343,7 +400,7 @@
 
     function handleTypeaheadSelectionForGenres(event) {
         if (!find(proposedGenre, {text: event.detail.text})) {
-            proposedGenre.push({text: event.detail.text, id: event.detail.id});
+            proposedGenre.push({text: event.detail.text, id: `genre/${event.detail.id}`});
             proposedGenre = proposedGenre;
             currentGenreText = "";
             hideTypeaheadCreateForGenres = true;
@@ -356,8 +413,9 @@
             const uuid = uuidv4();
             await setDoc(doc(db, `genres/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`), {
                 name: currentGenreText,
+                id: `genre/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`
             });
-            proposedGenre.push({text: currentGenreText, id: `genres/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedGenre.push({text: currentGenreText, id: `genre/${currentGenreText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedGenre = proposedGenre;
             currentGenreText = "";
             hideTypeaheadCreateForGenres = true;
@@ -375,7 +433,7 @@
 
     function handleTypeaheadSelectionForProducers(event) {
         if (!find(proposedProducers, {text: event.detail.text})) {
-            proposedProducers.push({text: event.detail.text, id: event.detail.id});
+            proposedProducers.push({text: event.detail.text, id: `producer/${event.detail.id}`});
             proposedProducers = proposedProducers;
             currentProducerText = "";
             hideTypeaheadCreateForProducers = true;
@@ -388,8 +446,9 @@
             const uuid = uuidv4();
             await setDoc(doc(db, `producers/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`), {
                 name: currentProducerText,
+                id: `producer/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`
             });
-            proposedProducers.push({text: currentProducerText, id: `producers/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedProducers.push({text: currentProducerText, id: `producer/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedProducers = proposedProducers;
             currentProducerText = "";
             hideTypeaheadCreateForProducers = true;
@@ -407,7 +466,7 @@
 
     function handleTypeaheadSelectionForWriters(event) {
         if (!find(proposedWriters, {text: event.detail.text})) {
-            proposedWriters.push({text: event.detail.text, id: event.detail.id});
+            proposedWriters.push({text: event.detail.text, id: `writer/${event.detail.id}`});
             proposedWriters = proposedWriters;
             currentWriterText = "";
             hideTypeaheadCreateForWriters = true;
@@ -420,8 +479,9 @@
             const uuid = uuidv4();
             await setDoc(doc(db, `writers/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`), {
                 name: currentWriterText,
+                id: `writer/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`,
             });
-            proposedWriters.push({text: currentWriterText, id: `writers/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`});
+            proposedWriters.push({text: currentWriterText, id: `writer/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedWriters = proposedWriters;
             currentWriterText = "";
             hideTypeaheadCreateForWriters = true;
@@ -430,6 +490,30 @@
     }
 </script>
 
+<Modal header="All genres" bind:hideModal={hideModalGenres}><svelte:fragment slot="body">
+    {#each publicGenre as genre}
+        <a href="/{genre.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{genre.text}</a>
+    {/each}
+</svelte:fragment></Modal>
+
+<Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
+    {#each publicLabels as label}
+        <a href="/{label.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{label.text}</a>
+    {/each}
+</svelte:fragment></Modal>
+
+<Modal header="All producers" bind:hideModal={hideModalProducers}><svelte:fragment slot="body">
+    {#each publicProducers as producer}
+        <a href="/{producer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{producer.text}</a>
+    {/each}
+</svelte:fragment></Modal>
+
+<Modal header="All writers" bind:hideModal={hideModalWriters}><svelte:fragment slot="body">
+    {#each publicWriters as writer}
+        <a href="/{writer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{writer.text}</a>
+    {/each}
+</svelte:fragment></Modal>
+
 <div class="mx-6 mt-2 text-sm breadcrumbs">
     <ul>
         <li><a href="/track/top/{new Date().getFullYear()}">Tracks</a></li>
@@ -437,14 +521,14 @@
     </ul>
 </div>
 
-<div bind:this={detailElement} class="flex sticky top-[-1px] justify-start">
+<div bind:this={detailElement} class:-z-50={hide} class="flex sticky top-[-1px] justify-start">
     <img on:load={() => {
         // const colorThief = new ColorThief();
         // const color = colorThief.getColor(thumbnailElement, 10);
         // console.log(color);
-    }} bind:this={thumbnailElement} class:opacity-70={hide} class:scale-50={hide} class="origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
+    }} bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
-        <div class="my-8 -z-1 basis-3/5">
+        <div class="my-8 basis-3/5">
             <h1 class="text-6xl font-black">{trackData?.name}</h1> 
             <h2 class="text-4xl font-bold">by {trackData?.album?.artists[0]?.name}</h2>
             <h3 class="text-2xl font-medium">on {trackData?.album?.name}</h3>
@@ -453,10 +537,11 @@
                 <Rating avgRating={trackData?.avgRating}/>
             </div>
             {#if trackData?.numRatings === 1}
-                <p class="my-1 italic">based on {trackData?.numRatings} rating</p>
+                <p class="my-1 mb-6 italic">based on {trackData?.numRatings} rating</p>
             {:else}
-                <p class="my-1 italic">based on {trackData?.numRatings} ratings</p>
+                <p class="my-1 mb-6 italic">based on {trackData?.numRatings} ratings</p>
             {/if}
+            <a class="text-lg rounded-lg drop-shadow-xl transition-all hover:-translate-y-8 px-4 py-2 bg-slate-700" href={trackData?.album?.external_urls}><Icon data={faPlayCircle} class="mr-2"/>Listen to {trackData?.album?.name} on Spotify</a>
         </div>
         <div class="my-8 mr-6 float-right basis-2/5">
             <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="detail-box">
@@ -475,9 +560,22 @@
                     }
                 }}>
                     <p class="italic text-gray-400">label 
-                        {#each publicLabels as label}
-                            <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
-                        {/each}
+                        {#if publicLabels.length > 3}
+                            <a href="/{publicLabels[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[0].text}</a>
+                            <a href="/{publicLabels[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[1].text}</a>
+                            <a href="/{publicLabels[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[2].text}</a>
+                            <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                if (hideModalLabels) {
+                                    hideModalLabels = false;
+                                } else {
+                                    hideModalLabels = true;
+                                }
+                            }}>view all</button>    
+                        {:else}
+                            {#each publicLabels as label}
+                                <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
+                            {/each}
+                        {/if}
                         {#each proposedLabels as label}
                             <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
                                 <a class="text-center" href="/{label.id}">{label.text} </a>
@@ -492,9 +590,22 @@
                         <InputWithTypeahead collectionType="labels" on:handleTypeaheadCreation={handleTypeaheadCreationForLabels} bind:hideTypeaheadCreate={hideTypeaheadCreateForLabels} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForLabels} bind:currentLabelText={currentLabelText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForLabels} bind:autocompleteResults={autocompleteResultsForLabels}/>
                     </p>
                     <p class="italic text-gray-400">genres 
-                        {#each publicGenre as genre}
-                            <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
-                        {/each}
+                        {#if publicGenre.length > 3}
+                            <a href="/{publicGenre[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[0].text}</a>
+                            <a href="/{publicGenre[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[1].text}</a>
+                            <a href="/{publicGenre[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[2].text}</a>
+                            <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                if (hideModalGenres) {
+                                    hideModalGenres = false;
+                                } else {
+                                    hideModalGenres = true;
+                                }
+                            }}>view all</button>    
+                        {:else}
+                            {#each publicGenre as genre}
+                                <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
+                            {/each}
+                        {/if}
                         {#each proposedGenre as genre}
                             <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
                                 <a class="text-center" href="/{genre.id}">{genre.text} </a>
@@ -509,9 +620,22 @@
                         <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>
                     </p>
                     <p class="italic text-gray-400">producers 
-                        {#each publicProducers as producer}
-                            <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
-                        {/each}
+                        {#if publicProducers.length > 3}
+                            <a href="/{publicProducers[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[0].text}</a>
+                            <a href="/{publicProducers[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[1].text}</a>
+                            <a href="/{publicProducers[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[2].text}</a>
+                            <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                if (hideModalProducers) {
+                                    hideModalProducers = false;
+                                } else {
+                                    hideModalProducers = true;
+                                }
+                            }}>view all</button>    
+                        {:else}
+                            {#each publicProducers as producer}
+                                <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
+                            {/each}
+                        {/if}
                         {#each proposedProducers as producer}
                             <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
                                 <a class="text-center" href="/{producer.id}">{producer.text} </a>
@@ -527,9 +651,22 @@
                     </p>                    
 
                     <p class="italic text-gray-400">writers 
-                        {#each publicWriters as writer}
-                            <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
-                        {/each}
+                        {#if publicWriters.length > 3}
+                            <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
+                            <a href="/{publicWriters[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[1].text}</a>
+                            <a href="/{publicWriters[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[2].text}</a>
+                            <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                if (hideModalWriters) {
+                                    hideModalWriters = false;
+                                } else {
+                                    hideModalWriters = true;
+                                }
+                            }}>view all</button>    
+                        {:else}
+                            {#each publicWriters as writer}
+                                <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
+                            {/each}
+                        {/if}
                         {#each proposedWriters as writer}
                             <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
                                 <a class="text-center" href="/{writer.id}">{writer.text} </a>
@@ -551,6 +688,7 @@
 </div>
 
 <div class="mx-6 divider"></div>
+
 <div class="mx-6" id="track-analysis-features">
     <h2 class="text-4xl font-black mb-4">Analysis & Features</h2>
     <div class="grid grid-flow-row-dense grid-cols-3 gap-4">
@@ -616,6 +754,30 @@
     <TrackReview trackId={$page.params.id} {userId}/>
 </div>
 
-<style>
+<div class="mx-6 divider"></div>
 
+<div class="mx-6">
+    <h2 class="text-4xl font-black mb-4">More tracks by {trackData?.album?.artists[0]?.name}</h2>
+    <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
+        {#if moreTracksByArtist.length === 0}
+            <p>Could not find any tracks made by the artist.</p>
+        {/if}
+        {#each moreTracksByArtist as track}
+            <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+        {/each}
+    </div>
+</div>
+
+<div class="mx-6 divider"></div>
+
+<div class="mx-6">
+    <h2 class="text-4xl font-black mb-4">More tracks</h2>
+    <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
+        {#each moreTracks as track}
+            <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+        {/each}
+    </div>
+</div>
+
+<style>
 </style>

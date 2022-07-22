@@ -25,6 +25,9 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^6.1.1",
+		"@fortawesome/free-regular-svg-icons": "^6.1.1",
+		"@fortawesome/free-solid-svg-icons": "^6.1.1",
 		"@lottiefiles/jlottie": "^1.2.1",
 		"@lottiefiles/svelte-lottie-player": "^0.2.0",
 		"axios": "^0.27.2",
@@ -37,6 +40,7 @@
 		"node-cron": "^3.0.1",
 		"pusher": "^5.1.1-beta",
 		"querystring": "^0.2.1",
+		"svelte-awesome": "^3.0.0",
 		"uuid": "^8.3.2"
 	}
 }
