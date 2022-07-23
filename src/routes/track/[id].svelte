@@ -787,7 +787,7 @@
         <div class="grid grid-flow-row-dense grid-cols-3 gap-4">
             {#each userActivity as user}
                 {#await getDoc(doc(db, `users/${user}`))}
-                    <p>{user} listens to this track a lot</p>
+                    <p>{user} listens to {trackData?.name} a lot</p>
                 {:then data}
                     <a href="/user/{user}" class="drop-shadow-xl hover:-translate-y-1 transition-all">
                         <img class="inline-block align-bottom rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
@@ -797,7 +797,7 @@
                         </span>
                     </a>
                 {:catch err}
-                    <p>{user} listens to this track a lot</p>
+                    <p>{user} listens to {trackData?.name} a lot</p>
                 {/await}
             {/each}
         </div>
@@ -876,7 +876,7 @@
 {#if recommendedTracks.length > 1}
     <div class="mx-6">
         <h2 class="text-4xl font-black mb-4">Recommendations</h2>
-        <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
+        <div class="w-full h-fit whitespace-nowrap overflow-x-auto fade-in-left-right">
             {#each recommendedTracks as track}
                 {#if track.id !== $page.params.id}
                     <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.album.images[1].url} alt="" title={track.name} artist={track.album.artists[0].name}/>
@@ -890,7 +890,7 @@
 {#if moreTracksByArtist.length !== 0}
     <div class="mx-6">
         <h2 class="text-4xl font-black mb-4">More tracks by {trackData?.album?.artists[0]?.name}</h2>
-        <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto">
+        <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto fade-in-left-right">
             {#each moreTracksByArtist as track}
                 <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
             {/each}
@@ -902,7 +902,7 @@
 
 <div class="mx-6">
     <h2 class="text-4xl font-black mb-4">More tracks</h2>
-    <div class="w-full h-fit whitespace-nowrap overflow-x-auto">
+    <div class="w-full h-fit whitespace-nowrap overflow-x-auto fade-in-left-right">
         {#each moreTracks as track}
             <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
         {/each}
@@ -910,4 +910,8 @@
 </div>
 
 <style>
+    .fade-in-left-right {
+        mask-image: linear-gradient(transparent, black 20%, black 80%, transparent 100%);
+        -webkit-mask-image: linear-gradient( to right,transparent, black 20%, black 80%, transparent 100%);
+    }
 </style>
