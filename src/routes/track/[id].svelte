@@ -78,6 +78,7 @@
 
     //recommendations
     let genresForRecommendations = [];
+    let labelsForQuerying = [];
     let recommendedTracks = [];
 
     let userActivity = [];
@@ -168,6 +169,7 @@
                         producers: [],
                         writers: [],
                         genre: [],
+                        labelNames: [],
                         genreNames: []
                     };
 
@@ -215,6 +217,7 @@
                 publicWriters = trackData?.writers;
                 publicProducers = trackData?.producers;
                 genresForRecommendations = trackData?.genreNames;
+                labelsForQuerying = trackData?.labelNames;
 
                 const tracksByArtistRef = collection(db, `tracks`);
                 const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
@@ -360,6 +363,7 @@
             label: proposedLabels,
             genre: proposedGenre,
             genreNames: genresForRecommendations,
+            labelNames: labelsForQuerying,
             producers: proposedProducers,
             writers: proposedWriters,
         }, {
@@ -386,6 +390,8 @@
         if (!find(proposedLabels, {text: event.detail.text})) {
             proposedLabels.push({text: event.detail.text, id: `label/${event.detail.id}`});
             proposedLabels = proposedLabels;
+            labelsForQuerying.push(event.detail.text);
+            labelsForQuerying = labelsForQuerying;
             currentLabelText = "";
             hideTypeaheadCreateForLabels = true;
             autocompleteResultsForLabels = [];
@@ -401,6 +407,8 @@
             });
             proposedLabels.push({text: currentLabelText, id: `label/${currentLabelText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedLabels = proposedLabels;
+            labelsForQuerying.push(currentLabelText);
+            labelsForQuerying = labelsForQuerying;
             currentLabelText = "";
             hideTypeaheadCreateForLabels = true;
             autocompleteResultsForLabels = [];
@@ -671,7 +679,11 @@
                                     remove(proposedLabels, {
                                         text: label.text,
                                     });
+                                    const newArr = labelsForQuerying.filter(label => {
+                                        return label !== label.text;
+                                    });
                                     proposedLabels = proposedLabels;
+                                    labelsForQuerying = newArr;
                                 }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
                             </span>
                         {/each}

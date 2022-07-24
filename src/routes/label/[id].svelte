@@ -12,7 +12,7 @@
 	import { page } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { doc, getDoc, increment, setDoc } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, increment, limit, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
 
@@ -30,8 +30,19 @@
     let facebookLink = "";
     let websiteLink = "";
 
+    let lastVisible;
+    let currentLabelSize;
+
+    let tracks = [];
+
     onMount(() => {
         loginToFirebase();
+
+        window.onscroll = function (event) {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && currentLabelSize >= 5) {
+                paginateData();
+            }
+        }
     })
 
     function getCurrentUser() {
@@ -62,6 +73,17 @@
                 twitterLink = labelData?.twitterHref;
                 instagramLink = labelData?.instagramHref;
                 facebookLink = labelData?.facebookHref;
+
+                const allTracksRef = collection(db, `tracks`);
+                const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), limit(5));
+                const allTracks = await getDocs(allTracksQuery);
+
+                lastVisible = allTracks.docs[allTracks.docs.length - 1];
+                currentLabelSize = allTracks.docs.length;
+
+                allTracks.forEach((doc) => {
+                    addToTracks(doc.data());
+                });
             } else {
                 if (browser) {
                     goto("/error");
@@ -72,6 +94,26 @@
                 goto("/error");
             }
         }
+    }
+
+    async function paginateData() {
+        if (lastVisible || currentLabelSize < 5) {    
+            const allTracksRef = collection(db, `tracks`);
+            const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), startAfter(lastVisible), limit(5));
+            const allTracks = await getDocs(allTracksQuery);
+
+            lastVisible = allTracks.docs[allTracks.docs.length - 1];
+            currentLabelSize = allTracks.docs.length;
+
+            allTracks.forEach((doc) => {
+                addToTracks(doc.data());
+            });
+        }
+    }
+
+    function addToTracks(data) {
+        tracks.push(data);
+        tracks = tracks;
     }
 
     function enterChangeMode() {
@@ -204,7 +246,11 @@
         </div>
         <div class="content basis-4/5 pr-14">
             <h2 class="text-4xl font-black">Music released by {labelData?.name}</h2>
-            <p></p>
+            <div>
+                {#each tracks as track}
+                    <p>{JSON.stringify(track)}</p>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
