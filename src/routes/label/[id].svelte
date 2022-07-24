@@ -12,7 +12,7 @@
 	import { page } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { doc, getDoc, setDoc } from "firebase/firestore";
+    import { doc, getDoc, increment, setDoc } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
 

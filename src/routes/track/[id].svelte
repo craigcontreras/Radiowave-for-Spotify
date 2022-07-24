@@ -243,7 +243,7 @@
                     id: doc.id,
                 });
                 moreTracks = moreTracks;
-            });            
+            });
         } else {
             if (browser) {
                 goto("/error");
