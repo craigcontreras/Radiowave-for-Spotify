@@ -1,4 +1,7 @@
 <script>
+	import Dropdown from './../../components/Dropdown.svelte';
+	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
+	import { marked } from 'marked';
 	import UploadFile from './../../components/UploadFile.svelte';
 	import Modal from './../../components/Modal.svelte';
 	import Icon from 'svelte-awesome';
@@ -12,11 +15,13 @@
 	import { page } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, increment, limit, query, setDoc, startAfter, where } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
+    import DOMPurify from "isomorphic-dompurify";
 
     let editBiography = "";
+    $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
     let userLoaded = false;
     let labelData = {};
     let changeMode = false;
@@ -34,6 +39,11 @@
     let currentLabelSize;
 
     let tracks = [];
+
+    let sortBy = "album.release_date";
+    let ascOrDesc = "desc";
+    let label = "Newest";
+    let category = "release date"
 
     onMount(() => {
         loginToFirebase();
@@ -75,14 +85,17 @@
                 facebookLink = labelData?.facebookHref;
 
                 const allTracksRef = collection(db, `tracks`);
-                const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), limit(5));
+                const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
                 const allTracks = await getDocs(allTracksQuery);
 
                 lastVisible = allTracks.docs[allTracks.docs.length - 1];
                 currentLabelSize = allTracks.docs.length;
 
                 allTracks.forEach((doc) => {
-                    addToTracks(doc.data());
+                    addToTracks({
+                        data: doc.data(),
+                        id: doc.id,
+                    });
                 });
             } else {
                 if (browser) {
@@ -99,14 +112,17 @@
     async function paginateData() {
         if (lastVisible || currentLabelSize < 5) {    
             const allTracksRef = collection(db, `tracks`);
-            const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), startAfter(lastVisible), limit(5));
+            const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), startAfter(lastVisible), limit(3));
             const allTracks = await getDocs(allTracksQuery);
 
             lastVisible = allTracks.docs[allTracks.docs.length - 1];
             currentLabelSize = allTracks.docs.length;
 
             allTracks.forEach((doc) => {
-                addToTracks(doc.data());
+                addToTracks({
+                    data: doc.data(),
+                    id: doc.id,
+                });
             });
         }
     }
@@ -119,6 +135,26 @@
     function enterChangeMode() {
         changeMode = !changeMode;
         biographyCollapsed = true;
+    }
+
+    async function refreshQuery() {
+        tracks = [];
+        lastVisible = 0;
+        currentLabelSize = 0;
+
+        const allTracksRef = collection(db, `tracks`);
+        const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
+        const allTracks = await getDocs(allTracksQuery);
+
+        lastVisible = allTracks.docs[allTracks.docs.length - 1];
+        currentLabelSize = allTracks.docs.length;
+
+        allTracks.forEach((doc) => {
+            addToTracks({
+                data: doc.data(),
+                id: doc.id,
+            });
+        });
     }
 </script>
 
@@ -161,7 +197,7 @@
                         {#if changeMode}
                             <form action="" on:submit|preventDefault={async () => {
                                 await setDoc(doc(db, `labels/${$page.params.id}`), {
-                                    biography: editBiography
+                                    biography: sanitizedBiography,
                                 }, {
                                     merge: true
                                 });
@@ -173,7 +209,7 @@
                                 <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
                             </form>
                         {:else}
-                            <p>{labelData?.biography || "No biography found."}</p>
+                            <div id="biography">{@html marked(sanitizedBiography)}</div>
                         {/if}
                     </div>
                 {/if}
@@ -245,10 +281,91 @@
             <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
         </div>
         <div class="content basis-4/5 pr-14">
-            <h2 class="text-4xl font-black">Music released by {labelData?.name}</h2>
-            <div>
+            <h2 class="text-4xl font-black mb-4 inline-block align-middle">Music released by {labelData?.name}</h2>
+            <span class="float-right inline-block align-middle">
+                <Dropdown classes="absolute" label="Sort by {category}" buttonContent={label}>
+                    <ul slot="elements">
+                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg first:rounded-t-lg last:rounded-b-lg">Release date</p>
+                        <li on:click={() => {
+                            sortBy = "album.release_date"
+                            ascOrDesc = "desc";
+                            label = "Newest";
+                            category = "release date";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Newest</li>
+                        <li on:click={() => {
+                            sortBy = "album.release_date"
+                            ascOrDesc = "asc";
+                            label = "Oldest";
+                            category = "release date";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Oldest</li>
+                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Rating</p>
+                        <li on:click={() => {
+                            sortBy = "avgRating"
+                            ascOrDesc = "desc";
+                            label = "Highest";
+                            category = "rating";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                        <li on:click={() => {
+                            sortBy = "avgRating"
+                            ascOrDesc = "asc";
+                            label = "Lowest";
+                            category = "rating";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Artist</p>
+                        <li on:click={() => {
+                            sortBy = "primary_artist"
+                            ascOrDesc = "asc";
+                            label = "A-Z";
+                            category = "artist";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                        <li on:click={() => {
+                            sortBy = "primary_artist"
+                            ascOrDesc = "desc";
+                            label = "Z-A";
+                            category = "artist";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Track name</p>
+                        <li on:click={() => {
+                            sortBy = "name"
+                            ascOrDesc = "asc";
+                            label = "A-Z";
+                            category = "name";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                        <li on:click={() => {
+                            sortBy = "name"
+                            ascOrDesc = "desc";
+                            label = "Z-A";
+                            category = "name";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Popularity</p>
+                        <li on:click={() => {
+                            sortBy = "numRatings"
+                            ascOrDesc = "desc";
+                            label = "Highest";
+                            category = "popularity";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                        <li on:click={() => {
+                            sortBy = "numRatings"
+                            ascOrDesc = "asc";
+                            label = "Lowest";
+                            category = "popularity";
+                            refreshQuery();
+                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                </ul>
+                </Dropdown>
+            </span>
+            <div class="grid grid-cols-3 justify-center grid-flow-row-dense gap-4">
                 {#each tracks as track}
-                    <p>{JSON.stringify(track)}</p>
+                    <BigTrackThumbnail date={track?.data?.album?.release_date} classes="" href="/track/{track.id}" src={track.data.album.images[1].url} alt="" title={track.data.name} artist={track.data.album.artists[0].name}/>
                 {/each}
             </div>
         </div>
@@ -256,5 +373,4 @@
 </div>
 
 <style>
-
 </style>

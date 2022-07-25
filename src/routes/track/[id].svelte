@@ -26,6 +26,7 @@
     let danceability = "N/A";
     let energy = "N/A";
     let valence = "N/A";
+    let releaseDate;
 
     //handling track details
     
@@ -84,6 +85,8 @@
     let userActivity = [];
     let commentCollapsed = true;
     
+    let ratingColor = "";
+
     onMount(() => {
         loginToFirebase();
         //for the detail element changing position
@@ -138,12 +141,17 @@
                 axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
                     const trackPageData = res[0];
                     const trackFeaturesData = res[1];
+                    const dates = trackPageData.data.album.release_date.split("-");
+                    const year = dates[0];
+                    const month = dates[1];
+                    const day = dates[2];
+                    const date = new Date(year, month - 1, day);
                     const spotifyData = {
                         album: {
                             images: trackPageData.data.album.images,
                             name: trackPageData.data.album.name,
                             artists: trackPageData.data.album.artists,
-                            release_date: trackPageData.data.album.release_date,
+                            release_date: date,
                             external_urls: trackPageData.data.album.external_urls.spotify,
                             total_tracks: trackPageData.data.album.total_tracks,
                         },
@@ -170,7 +178,10 @@
                         writers: [],
                         genre: [],
                         labelNames: [],
-                        genreNames: []
+                        genreNames: [],
+                        year,
+                        month,
+                        day,
                     };
 
                     await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
@@ -185,6 +196,7 @@
                     publicProducers = trackData?.producers;
                     publicWriters = trackData?.writers;
                     genresForRecommendations = trackData?.genreNames;
+                    releaseDate = new Date(trackData?.album?.release_date);
 
                     const tracksByArtistRef = collection(db, `tracks`);
                     const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
@@ -218,6 +230,7 @@
                 publicProducers = trackData?.producers;
                 genresForRecommendations = trackData?.genreNames;
                 labelsForQuerying = trackData?.labelNames;
+                releaseDate = trackData?.album?.release_date.toDate();
 
                 const tracksByArtistRef = collection(db, `tracks`);
                 const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
@@ -247,6 +260,14 @@
                 });
                 moreTracks = moreTracks;
             });
+
+            if (trackData?.avgRating >= 0 && trackData?.avgRating < 50) {
+                ratingColor = "bg-red-600";
+            } else if (trackData?.avgRating >= 50 && trackData?.avgRating < 70) {
+                ratingColor = "bg-yellow-400";
+            } else if (trackData?.avgRating >= 70 && trackData?.avgRating <= 100) {
+                ratingColor = "bg-green-600";
+            }
         } else {
             if (browser) {
                 goto("/error");
@@ -630,7 +651,7 @@
             <h3 class="text-2xl font-medium">on {trackData?.album?.name}</h3>
     
             <div class="w-16 mt-4">
-                <Rating avgRating={trackData?.avgRating}/>
+                <Rating bind:ratingColor={ratingColor} avgRating={trackData?.avgRating}/>
             </div>
             {#if trackData?.numRatings === 1}
                 <p class="my-1 mb-6 italic">based on {trackData?.numRatings} rating</p>
@@ -644,7 +665,7 @@
                 <h2 class="italic inline text-gray-400">TRACK DETAILS</h2>
                 <button class="float-right inline" on:click={enterChangeMode}>Change</button>
                 <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
-                <p><span class="italic text-gray-400 pr-1">date</span> {trackData?.album?.release_date}</p>
+                <p><span class="italic text-gray-400 pr-1">date</span> {releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
                 <p><span class="italic text-gray-400 pr-1">track no.</span> {trackData?.track_number}/{trackData?.album?.total_tracks}</p>
                 <p><span class="italic text-gray-400 pr-1">length</span> {duration}</p>
                 <form action="" on:submit|preventDefault={async () => {
@@ -679,8 +700,8 @@
                                     remove(proposedLabels, {
                                         text: label.text,
                                     });
-                                    const newArr = labelsForQuerying.filter(label => {
-                                        return label !== label.text;
+                                    const newArr = labelsForQuerying.filter(item => {
+                                        return item !== label.text;
                                     });
                                     proposedLabels = proposedLabels;
                                     labelsForQuerying = newArr;
