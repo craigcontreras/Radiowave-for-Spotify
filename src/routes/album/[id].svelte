@@ -1,9 +1,8 @@
 <script>
-import { onMount } from "svelte/types/runtime/internal/lifecycle";
-
+    import { onMount } from "svelte";
 
     onMount(() => {
-        
+
     })
 </script>
 
