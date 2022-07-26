@@ -80,12 +80,17 @@
     //recommendations
     let genresForRecommendations = [];
     let labelsForQuerying = [];
+    let writersForQuerying = [];
+    let producersForQuerying = [];
     let recommendedTracks = [];
 
     let userActivity = [];
     let commentCollapsed = true;
     
     let ratingColor = "";
+
+    let refreshed = 0;
+    const id = "4d5e942d117f4de793c86a1c53c3d393";
 
     onMount(() => {
         loginToFirebase();
@@ -118,6 +123,131 @@
             }, reject);
         });
     }
+    
+    async function initialLoad(userAccessToken, userRefreshToken) {
+        if (refreshed > 1) {
+            goto("/error");
+        }
+
+        const trackPage = axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
+            headers: {
+                Authorization: `Bearer ${userAccessToken}`
+            }
+        });
+        const trackFeatures = axios.get(`https://api.spotify.com/v1/audio-features/${$page.params.id}`, {
+            headers: {
+                Authorization: `Bearer ${userAccessToken}`
+            }
+        });
+        axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
+            const trackPageData = res[0];
+            const trackFeaturesData = res[1];
+            const dates = trackPageData.data.album.release_date.split("-");
+            const year = dates[0];
+            const month = dates[1];
+            const day = dates[2];
+            const date = new Date(year, month - 1, day);
+            const spotifyData = {
+                album: {
+                    album_type: trackPageData.data.album.album_type,
+                    images: trackPageData.data.album.images,
+                    name: trackPageData.data.album.name,
+                    artists: trackPageData.data.album.artists,
+                    release_date: date,
+                    id: trackPageData.data.album.id,
+                    external_urls: trackPageData.data.album.external_urls.spotify,
+                    total_tracks: trackPageData.data.album.total_tracks,
+                },
+                analysis: {
+                    tempo: trackFeaturesData.data.tempo,
+                    time_signature: trackFeaturesData.data.time_signature,
+                    key: trackFeaturesData.data.key,
+                },
+                features: {
+                    loudness: trackFeaturesData.data.loudness,
+                    acousticness: trackFeaturesData.data.acousticness,
+                    danceability: trackFeaturesData.data.danceability,
+                    energy: trackFeaturesData.data.energy,
+                    valence: trackFeaturesData.data.valence,
+                },
+                duration_ms: trackPageData.data.duration_ms,
+                name: trackPageData.data.name,
+                track_number: trackPageData.data.track_number,
+                avgRating: 0,
+                numRatings: 0,
+                primary_artist: trackPageData.data.album.artists[0].name,
+                label: [],
+                producers: [],
+                writers: [],
+                genre: [],
+                labelNames: [],
+                genreNames: [],
+                producerNames: [],
+                writerNames: [],
+                year,
+                month,
+                day,
+            };
+
+            await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
+            trackData = spotifyData;
+            matchKey();
+            matchDanceability();
+            matchEnergy();
+            matchValence();
+            duration = millisToMinutesAndSeconds(trackData?.duration_ms);
+            publicLabels = trackData?.label;
+            publicGenre = trackData?.genre;
+            publicProducers = trackData?.producers;
+            publicWriters = trackData?.writers;
+            genresForRecommendations = trackData?.genreNames;
+            releaseDate = new Date(trackData?.album?.release_date);
+
+            const tracksByArtistRef = collection(db, `tracks`);
+            const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
+            const tracksByArtist = await getDocs(tracksByArtistQuery);
+            tracksByArtist.forEach(doc => {
+                moreTracksByArtist.push({
+                    name: doc.data().name,
+                    artists: doc.data().album.artists,
+                    image: doc.data().album.images[1].url,
+                    id: doc.id,
+                });
+                moreTracksByArtist = moreTracksByArtist;
+            });
+            findRecommendations();
+            findUserActivity();
+        })).catch(err => {
+            if (refreshed < 1) {
+                const params = new URLSearchParams();
+                params.append("grant_type", "refresh_token");
+                params.append("refresh_token", userRefreshToken);
+                params.append("client_id", id);
+                axios.post("https://accounts.spotify.com/api/token", params, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                }).then(async (spotifyData) => {
+                    const newAccess = spotifyData.data.access_token;
+                    const newRefresh = spotifyData.data.refresh_token;
+                    await setDoc(doc(db, `users/${userId}`), {
+                        access: newAccess,
+                        refresh: newRefresh
+                    }, {
+                        merge: true
+                    });
+                    refreshed++;
+                    initialLoad(newAccess, newRefresh);
+                }).catch(err => {
+                    refreshed++;
+                });
+            } else {
+                if (browser) {
+                    goto("/error");
+                }
+            }
+        });
+    }
 
     async function loginToFirebase() {
         const user = await getCurrentUser();
@@ -125,98 +255,11 @@
             userId = user.uid;
             const userDoc = await getDoc(doc(db, `users/${user.uid}`));
             const userAccessToken = userDoc.data().access;
+            const userRefreshToken = userDoc.data().refresh;
             const trackDoc = await getDoc(doc(db, `tracks/${$page.params.id}`));
 
             if (!trackDoc.exists()) {
-                const trackPage = axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${userAccessToken}`
-                    }
-                });
-                const trackFeatures = axios.get(`https://api.spotify.com/v1/audio-features/${$page.params.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${userAccessToken}`
-                    }
-                });
-                axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
-                    const trackPageData = res[0];
-                    const trackFeaturesData = res[1];
-                    const dates = trackPageData.data.album.release_date.split("-");
-                    const year = dates[0];
-                    const month = dates[1];
-                    const day = dates[2];
-                    const date = new Date(year, month - 1, day);
-                    const spotifyData = {
-                        album: {
-                            images: trackPageData.data.album.images,
-                            name: trackPageData.data.album.name,
-                            artists: trackPageData.data.album.artists,
-                            release_date: date,
-                            external_urls: trackPageData.data.album.external_urls.spotify,
-                            total_tracks: trackPageData.data.album.total_tracks,
-                        },
-                        analysis: {
-                            tempo: trackFeaturesData.data.tempo,
-                            time_signature: trackFeaturesData.data.time_signature,
-                            key: trackFeaturesData.data.key,
-                        },
-                        features: {
-                            loudness: trackFeaturesData.data.loudness,
-                            acousticness: trackFeaturesData.data.acousticness,
-                            danceability: trackFeaturesData.data.danceability,
-                            energy: trackFeaturesData.data.energy,
-                            valence: trackFeaturesData.data.valence,
-                        },
-                        duration_ms: trackPageData.data.duration_ms,
-                        name: trackPageData.data.name,
-                        track_number: trackPageData.data.track_number,
-                        avgRating: 0,
-                        numRatings: 0,
-                        primary_artist: trackPageData.data.album.artists[0].name,
-                        label: [],
-                        producers: [],
-                        writers: [],
-                        genre: [],
-                        labelNames: [],
-                        genreNames: [],
-                        year,
-                        month,
-                        day,
-                    };
-
-                    await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
-                    trackData = spotifyData;
-                    matchKey();
-                    matchDanceability();
-                    matchEnergy();
-                    matchValence();
-                    duration = millisToMinutesAndSeconds(trackData?.duration_ms);
-                    publicLabels = trackData?.label;
-                    publicGenre = trackData?.genre;
-                    publicProducers = trackData?.producers;
-                    publicWriters = trackData?.writers;
-                    genresForRecommendations = trackData?.genreNames;
-                    releaseDate = new Date(trackData?.album?.release_date);
-
-                    const tracksByArtistRef = collection(db, `tracks`);
-                    const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
-                    const tracksByArtist = await getDocs(tracksByArtistQuery);
-                    tracksByArtist.forEach(doc => {
-                        moreTracksByArtist.push({
-                            name: doc.data().name,
-                            artists: doc.data().album.artists,
-                            image: doc.data().album.images[1].url,
-                            id: doc.id,
-                        });
-                        moreTracksByArtist = moreTracksByArtist;
-                    });
-                    findRecommendations();
-                    findUserActivity();
-                })).catch(err => {
-                    if (browser) {
-                        goto("/error");
-                    }
-                });
+                initialLoad(userAccessToken, userRefreshToken);
             } else {
                 trackData = trackDoc.data();
                 matchKey();
@@ -230,6 +273,8 @@
                 publicProducers = trackData?.producers;
                 genresForRecommendations = trackData?.genreNames;
                 labelsForQuerying = trackData?.labelNames;
+                writersForQuerying = trackData?.writerNames;
+                producersForQuerying = trackData?.producerNames;
                 releaseDate = trackData?.album?.release_date.toDate();
 
                 const tracksByArtistRef = collection(db, `tracks`);
@@ -385,6 +430,8 @@
             genre: proposedGenre,
             genreNames: genresForRecommendations,
             labelNames: labelsForQuerying,
+            writerNames: writersForQuerying,
+            producerNames: producersForQuerying,
             producers: proposedProducers,
             writers: proposedWriters,
         }, {
@@ -485,6 +532,8 @@
         if (!find(proposedProducers, {text: event.detail.text})) {
             proposedProducers.push({text: event.detail.text, id: `producer/${event.detail.id}`});
             proposedProducers = proposedProducers;
+            producersForQuerying.push(event.detail.text);
+            producersForQuerying = producersForQuerying;
             currentProducerText = "";
             hideTypeaheadCreateForProducers = true;
             autocompleteResultsForProducers = [];
@@ -500,6 +549,8 @@
             });
             proposedProducers.push({text: currentProducerText, id: `producer/${currentProducerText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedProducers = proposedProducers;
+            producersForQuerying.push(currentProducerText);
+            producersForQuerying = producersForQuerying;
             currentProducerText = "";
             hideTypeaheadCreateForProducers = true;
             autocompleteResultsForProducers = [];
@@ -518,6 +569,8 @@
         if (!find(proposedWriters, {text: event.detail.text})) {
             proposedWriters.push({text: event.detail.text, id: `writer/${event.detail.id}`});
             proposedWriters = proposedWriters;
+            writersForQuerying.push(event.detail.text);
+            writersForQuerying = writersForQuerying;
             currentWriterText = "";
             hideTypeaheadCreateForWriters = true;
             autocompleteResultsForWriters = [];
@@ -533,6 +586,8 @@
             });
             proposedWriters.push({text: currentWriterText, id: `writer/${currentWriterText.trim().replaceAll(" ", "-")}-${uuid}`});
             proposedWriters = proposedWriters;
+            writersForQuerying.push(currentWriterText);
+            writersForQuerying = writersForQuerying;
             currentWriterText = "";
             hideTypeaheadCreateForWriters = true;
             autocompleteResultsForWriters = [];
@@ -647,8 +702,14 @@
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
         <div class="my-8 basis-3/5">
             <h1 class="text-6xl font-black">{trackData?.name}</h1> 
-            <h2 class="text-4xl font-bold">by {trackData?.album?.artists[0]?.name}</h2>
-            <h3 class="text-2xl font-medium">on {trackData?.album?.name}</h3>
+            <h2 class="text-4xl font-bold">by <a class="hover:underline" href="/artist/{trackData?.album?.artists[0]?.id}">{trackData?.album?.artists[0]?.name}</a></h2>
+            <h3 class="text-2xl font-medium">on
+                {#if trackData?.album?.album_type !== "single" || trackData?.album?.total_tracks >= 4}
+                    <a class="hover:underline" href="/album/{trackData?.album?.id}">{trackData?.album?.name}</a>
+                {:else}
+                    {trackData?.album?.name}
+                {/if}
+            </h3>
     
             <div class="w-16 mt-4">
                 <Rating bind:ratingColor={ratingColor} avgRating={trackData?.avgRating}/>
@@ -768,6 +829,10 @@
                                     remove(proposedProducers, {
                                         text: producer.text,
                                     });
+                                    const newArr = producersForQuerying.filter(item => {
+                                        return item !== producer.text;
+                                    });
+                                    producersForQuerying = newArr;
                                     proposedProducers = proposedProducers;
                                 }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
                             </span>
@@ -799,6 +864,10 @@
                                     remove(proposedWriters, {
                                         text: writer.text,
                                     });
+                                    const newArr = writersForQuerying.filter(item => {
+                                        return item !== writer.text;
+                                    });
+                                    writersForQuerying = newArr;
                                     proposedWriters = proposedWriters;
                                 }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
                             </span>
@@ -846,7 +915,7 @@
     {:else}
         <h3 class="text-2xl font-bold">{trackData?.numRatings} reviews</h3>
     {/if}
-    <TrackReview trackId={$page.params.id} {userId}/>
+    <TrackReview fromDoc="tracks/{$page.params.id}/reviews/{userId}" fromCollection="tracks/{$page.params.id}/reviews" commentHref="/track/reviews/{$page.params.id}/" likeDoc="tracks/{$page.params.id}/reviews/" trackId={$page.params.id} {userId}/>
 </div>
 
 <div class="mx-6 divider"></div>

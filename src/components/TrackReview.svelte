@@ -10,6 +10,10 @@
 
     export let trackId;
     export let userId;
+    export let commentHref;
+    export let likeDoc;
+    export let fromDoc;
+    export let fromCollection;
     
     let lastVisible;
     let currentTrackSize;
@@ -44,7 +48,7 @@
     
     async function paginateData() {
         if (lastVisible || currentTrackSize < 5) {    
-            const allTracksRef = collection(db, `tracks/${trackId}/reviews`);
+            const allTracksRef = collection(db, fromCollection);
             const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"), startAfter(lastVisible), limit(5));
             const allTracks = await getDocs(allTracksQuery);
 
@@ -66,7 +70,7 @@
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
-            const allTracksRef = collection(db, `tracks/${trackId}/reviews`);
+            const allTracksRef = collection(db, fromCollection);
             const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"), limit(5));
             const allTracks = await getDocs(allTracksQuery);
 
@@ -93,8 +97,8 @@
         const user = await getCurrentUser();
         if (user !== null && currUserHasReview) {
             const batch = writeBatch(db);
-            batch.delete(doc(db, `tracks/${$page.params.id}/reviews/${userId}`));
-            batch.delete(doc(db, `users/${userId}/reviews/${$page.params.id}`));
+            batch.delete(doc(db, fromDoc));
+            batch.delete(doc(db, `users/${userId}/reviews/${trackId}`));
             await batch.commit();
 
             currUserHasReview = false;
@@ -120,7 +124,7 @@
         const user = await getCurrentUser();
         if (user !== null) {
             const batch = writeBatch(db);
-            batch.set(doc(db, `tracks/${$page.params.id}/reviews/${userId}`), {
+            batch.set(doc(db, fromDoc), {
                 author: userId,
                 date: serverTimestamp(),
                 rating,
@@ -128,7 +132,7 @@
                 likes: [],
                 likeCount: 0,
             });
-            batch.set(doc(db, `users/${userId}/reviews/${$page.params.id}`), {
+            batch.set(doc(db, `users/${userId}/reviews/${trackId}`), {
                 author: userId,
                 date: serverTimestamp(),
                 rating,
@@ -180,7 +184,7 @@
 
 <div id="reviews">
     {#each allTrackReviews as review}
-        <Review commentHref="/track/reviews/{trackId}/{review.author}" {trackId} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} reviewDate={review.date} />
+        <Review commentHref={commentHref + `${review.author}`} likeDoc={likeDoc + `${review.author}`} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} reviewDate={review.date} />
     {/each}
     
     {#if currentTrackSize >= 5}

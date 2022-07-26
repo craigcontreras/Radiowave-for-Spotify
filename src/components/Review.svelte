@@ -6,12 +6,12 @@
     import { doc, getDoc } from "firebase/firestore";
     import { db } from "../firebase.js";
 
-    export let trackId;
     export let reviewRating;
     export let reviewMessage;
     export let reviewAuthor;
     export let reviewDate;
     export let commentHref;
+    export let likeDoc;
     export let showLikeText = true;
     export let showCommentText = true;
 </script>
@@ -35,7 +35,7 @@
     <p class="text-sm">Written on {new Date(reviewDate?.seconds * 1000)}</p>
     <div id="likes-comments-stats">
         {#if showLikeText}
-            <Likes fromDoc="tracks/{trackId}/reviews/{reviewAuthor}"/>
+            <Likes fromDoc={likeDoc}/>
         {/if}
         {#if showCommentText}
             <button on:click|preventDefault={() => {
