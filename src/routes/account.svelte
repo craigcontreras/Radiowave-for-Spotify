@@ -1,12 +1,10 @@
 <script>
-	import Navbar from './../components/Navbar.svelte';
     //implement latest plays component later
 	import { browser } from '$app/env';
     import { db, auth } from '../firebase';
     import { getStores } from "$app/stores";
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
-    import Footer from '../components/Footer.svelte';
 
     let userInfo = {};
     let userLoaded = false;
@@ -48,7 +46,6 @@
     })
 </script>
 
-<Navbar/>
 {#if userLoaded}
     <p>Signed in as {userInfo.displayName}</p>
     
@@ -58,7 +55,6 @@
 {:else}
     <p>Not signed in</p>
 {/if}
-<Footer/>
 
 <style>
 </style>

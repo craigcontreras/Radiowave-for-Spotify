@@ -1,8 +1,9 @@
 <script>
+	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { doc, getDoc, setDoc } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, where } from "firebase/firestore";
     import { onMount } from "svelte";
     import { db, auth } from "../../firebase.js";
     import axios from 'axios';
@@ -15,6 +16,8 @@
     import { v4 as uuidv4 } from "uuid";
     import Modal from '../../components/Modal.svelte';
     import TrackReview from '../../components/TrackReview.svelte';
+    import Comments from '../../components/Comments.svelte';
+import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
 
     let userLoaded = false;
     let albumData;
@@ -61,6 +64,9 @@
     let hideModalWriters = true;
 
     let refreshed = 0;
+    let commentCollapsed = true;
+    let moreTracksByArtist = [];
+    let moreTracks = [];
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
     const id = "4d5e942d117f4de793c86a1c53c3d393";
@@ -107,12 +113,14 @@
                 if (browser) {
                     goto("/error");
                 }
+                return;
             }
 
             if (refreshed > 1) {
                 if (browser) {
                     goto("/error");
                 }
+                return;
             } else {
                 const dates = res.data.release_date.split("-");
                 const year = dates[0];
@@ -165,7 +173,9 @@
                 publicProducers = albumData?.producers;
                 producersForQuerying = albumData?.producerNames;
                 publicWriters = albumData?.writers;
-                writersForQuerying = albumData?.writerNames;   
+                writersForQuerying = albumData?.writerNames;
+                findMoreAlbumsByArtist();
+                findMoreAlbums();
             }
         }).catch(err => {
             if (refreshed < 1) {
@@ -229,7 +239,19 @@
                 } else if (albumData?.avgRating >= 70 && albumData?.avgRating <= 100) {
                     ratingColor = "bg-green-600";
                 }
+                findMoreAlbumsByArtist();
+                findMoreAlbums();
             }
+            
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+            const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+            const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+            setDoc(doc(db, `albums/${$page.params.id}/counter/${date}`), {
+                pageViews: increment(1),
+                date: dateObj,
+            }, {
+                merge: true
+            });
         } else {
             if (browser) {
                 goto("/error");
@@ -425,6 +447,42 @@
             autocompleteResultsForWriters = [];
         }
     }
+
+    function millisToMinutesAndSeconds(millis) {
+        var minutes = Math.floor(millis / 60000);
+        var seconds = ((millis % 60000) / 1000).toFixed(0);
+        return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+    }
+
+    async function findMoreAlbumsByArtist() {
+        const tracksByArtistRef = collection(db, `albums`);
+        const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", albumData?.artists[0]?.name), where("name", "!=", albumData?.name), limit(10));
+        const tracksByArtist = await getDocs(tracksByArtistQuery);
+        tracksByArtist.forEach(doc => {
+            moreTracksByArtist.push({
+                name: doc.data().name,
+                artists: doc.data().artists,
+                image: doc.data().images[1].url,
+                id: doc.id,
+            });
+            moreTracksByArtist = moreTracksByArtist;
+        });
+    }
+
+    async function findMoreAlbums() {
+        const recentTracksRef = collection(db, `albums`);
+        const recentTracksQuery = query(recentTracksRef, orderBy("avgRating", "desc"), limit(12));
+        const recentTracks = await getDocs(recentTracksQuery);
+        recentTracks.forEach(doc => {
+            moreTracks.push({
+                name: doc.data().name,
+                artists: doc.data().artists,
+                image: doc.data().images[1].url,
+                id: doc.id,
+            });
+            moreTracks = moreTracks;
+        });
+    }
 </script>
 
 <Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
@@ -467,8 +525,8 @@
         }} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl my-6 mr-6" src={albumData?.images[1]?.url} alt="Album cover"/>
         <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full content">
             <div class="text my-8 basis-3/5">
-                <h1 class="text-6xl font-black">{albumData?.name}</h1>
-                <h2 class="text-4xl font-bold">by <a class="hover:underline" href="/artist/{albumData?.artists[0]?.id}">{albumData?.artists[0]?.name}</a></h2>
+                <h1 class="text-6xl font-black max-w-[90%]">{albumData?.name}</h1>
+                <h2 class="text-4xl font-bold max-w-[90%]">by <a class="hover:underline" href="/artist/{albumData?.artists[0]?.id}">{albumData?.artists[0]?.name}</a></h2>
 
                 <div class="w-16 mt-4">
                     <Rating bind:ratingColor={ratingColor} avgRating={albumData?.avgRating}/>
@@ -630,9 +688,10 @@
     <div class="tracks">
         <h2 class="text-4xl font-black mb-4">Tracks</h2>
         {#each tracks as track}
-            <div class="track">
-                <a href="/track/{track.id}">{track.name}</a>
-            </div>
+            <a class="hover:bg-base-300 p-4 transition-all track flex justify-between" href="/track/{track.id}">
+                <p class="text-gray-400">{track.track_number} <span class="ml-4 text-white">{track.name}</span></p>
+                <p class="text-gray-400">{millisToMinutesAndSeconds(track.duration)}</p>
+            </a>
         {/each}    
     </div>
     <div class="divider"></div>
@@ -645,6 +704,38 @@
         {/if}
         <TrackReview fromDoc="albums/{$page.params.id}/reviews/{userId}" fromCollection="albums/{$page.params.id}/reviews" commentHref="/album/reviews/{$page.params.id}/" likeDoc="albums/{$page.params.id}/reviews/" trackId={$page.params.id} {userId}/>    
     </div>
+    <div class="divider"></div>
+    <div class="shoutbox">
+        <h2 class="text-4xl align-middle font-black inline">Shoutbox</h2>
+        <button class="ml-4 px-2 py-1 bg-slate-700 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
+        {#if !commentCollapsed}
+            <div class="mt-4" transition:slide>
+                <Comments fromCollection={`albums/${$page.params.id}/comments`} fromDoc={`albums/${$page.params.id}/comments/${uuidv4()}`}/>
+            </div>
+        {/if}
+    </div>
+    {#if moreTracksByArtist.length !== 0}
+        <div class="divider"></div>
+        <div class="more-albums-by-artist">
+            <h2 class="text-4xl font-black mb-4">More albums by {albumData?.artists[0]?.name}</h2>
+            <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto fade-in-left-right">
+                {#each moreTracksByArtist as track}
+                    <TrackThumbnail classes="!whitespace-normal mr-1" href="/album/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+                {/each}
+            </div>
+        </div>
+    {/if}
+    {#if moreTracks.length !== 0}
+        <div class="divider"></div>
+        <div class="more-albums">
+            <h2 class="text-4xl font-black mb-4">More albums</h2>
+            <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto fade-in-left-right">
+                {#each moreTracks as track}
+                    <TrackThumbnail classes="!whitespace-normal mr-1" href="/album/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+                {/each}
+            </div>
+        </div>
+    {/if}
 </div>
 
 <style>

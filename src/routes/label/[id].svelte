@@ -40,16 +40,17 @@
 
     let tracks = [];
 
-    let sortBy = "album.release_date";
+    let sortBy = "release_date";
     let ascOrDesc = "desc";
     let label = "Newest";
     let category = "release date"
+    let type = "albums"
 
     onMount(() => {
         loginToFirebase();
 
         window.onscroll = function (event) {
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && currentLabelSize >= 5) {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && currentLabelSize >= 3) {
                 paginateData();
             }
         }
@@ -84,7 +85,7 @@
                 instagramLink = labelData?.instagramHref;
                 facebookLink = labelData?.facebookHref;
 
-                const allTracksRef = collection(db, `tracks`);
+                const allTracksRef = collection(db, type);
                 const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
                 const allTracks = await getDocs(allTracksQuery);
 
@@ -110,8 +111,8 @@
     }
 
     async function paginateData() {
-        if (lastVisible || currentLabelSize < 5) {    
-            const allTracksRef = collection(db, `tracks`);
+        if (lastVisible || currentLabelSize < 3) {    
+            const allTracksRef = collection(db, type);
             const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), startAfter(lastVisible), limit(3));
             const allTracks = await getDocs(allTracksQuery);
 
@@ -142,7 +143,7 @@
         lastVisible = 0;
         currentLabelSize = 0;
 
-        const allTracksRef = collection(db, `tracks`);
+        const allTracksRef = collection(db, type);
         const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
         const allTracks = await getDocs(allTracksQuery);
 
@@ -183,7 +184,7 @@
                         if (changeMode) { hideModal = !hideModal }
                     }}><Icon data={faPencil}/></span>
                 </span>
-                <h2 class="text-2xl break-all text-center font-black mt-4">{labelData?.name}</h2>
+                <h2 class="text-2xl break-words text-center font-black mt-4">{labelData?.name}</h2>
             </span>
             <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
                 <h2 class="italic inline text-gray-400">HISTORY</h2>
@@ -281,92 +282,130 @@
             <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
         </div>
         <div class="content basis-4/5 pr-14">
-            <h2 class="text-4xl font-black mb-4 inline-block align-middle">Music released by {labelData?.name}</h2>
-            <span class="float-right inline-block align-middle">
-                <Dropdown classes="absolute" label="Sort by {category}" buttonContent={label}>
-                    <ul slot="elements">
-                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg first:rounded-t-lg last:rounded-b-lg">Release date</p>
-                        <li on:click={() => {
-                            sortBy = "album.release_date"
-                            ascOrDesc = "desc";
-                            label = "Newest";
-                            category = "release date";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Newest</li>
-                        <li on:click={() => {
-                            sortBy = "album.release_date"
-                            ascOrDesc = "asc";
-                            label = "Oldest";
-                            category = "release date";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Oldest</li>
-                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Rating</p>
-                        <li on:click={() => {
-                            sortBy = "avgRating"
-                            ascOrDesc = "desc";
-                            label = "Highest";
-                            category = "rating";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
-                        <li on:click={() => {
-                            sortBy = "avgRating"
-                            ascOrDesc = "asc";
-                            label = "Lowest";
-                            category = "rating";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
-                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Artist</p>
-                        <li on:click={() => {
-                            sortBy = "primary_artist"
-                            ascOrDesc = "asc";
-                            label = "A-Z";
-                            category = "artist";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
-                        <li on:click={() => {
-                            sortBy = "primary_artist"
-                            ascOrDesc = "desc";
-                            label = "Z-A";
-                            category = "artist";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
-                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Track name</p>
-                        <li on:click={() => {
-                            sortBy = "name"
-                            ascOrDesc = "asc";
-                            label = "A-Z";
-                            category = "name";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
-                        <li on:click={() => {
-                            sortBy = "name"
-                            ascOrDesc = "desc";
-                            label = "Z-A";
-                            category = "name";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
-                        <p class="m-0 p-2 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Popularity</p>
-                        <li on:click={() => {
-                            sortBy = "numRatings"
-                            ascOrDesc = "desc";
-                            label = "Highest";
-                            category = "popularity";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
-                        <li on:click={() => {
-                            sortBy = "numRatings"
-                            ascOrDesc = "asc";
-                            label = "Lowest";
-                            category = "popularity";
-                            refreshQuery();
-                        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
-                </ul>
-                </Dropdown>
-            </span>
+            <div class="flex justify-between">
+                <h2 class="text-4xl font-black mb-4 max-w-[50%]">Music released by {labelData?.name}</h2>
+                <span>
+                    <Dropdown classes="absolute" label="Sort by {category}" buttonContent={label}>
+                        <ul slot="elements" class="text-xs">
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg first:rounded-t-lg last:rounded-b-lg">Release date</p>
+                            <li on:click={() => {
+                                if (type === "tracks") {
+                                    sortBy = "album.release_date"
+                                } else {
+                                    sortBy = "release_date"
+                                }
+                                ascOrDesc = "desc";
+                                label = "Newest";
+                                category = "release date";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Newest</li>
+                            <li on:click={() => {
+                                if (type === "tracks") {
+                                    sortBy = "album.release_date"
+                                } else {
+                                    sortBy = "release_date"
+                                }
+                                ascOrDesc = "asc";
+                                label = "Oldest";
+                                category = "release date";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Oldest</li>
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Rating</p>
+                            <li on:click={() => {
+                                sortBy = "avgRating"
+                                ascOrDesc = "desc";
+                                label = "Highest";
+                                category = "rating";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                            <li on:click={() => {
+                                sortBy = "avgRating"
+                                ascOrDesc = "asc";
+                                label = "Lowest";
+                                category = "rating";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-pslate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Artist</p>
+                            <li on:click={() => {
+                                sortBy = "primary_artist"
+                                ascOrDesc = "asc";
+                                label = "A-Z";
+                                category = "artist";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                            <li on:click={() => {
+                                sortBy = "primary_artist"
+                                ascOrDesc = "desc";
+                                label = "Z-A";
+                                category = "artist";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Track name</p>
+                            <li on:click={() => {
+                                sortBy = "name"
+                                ascOrDesc = "asc";
+                                label = "A-Z";
+                                category = "name";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                            <li on:click={() => {
+                                sortBy = "name"
+                                ascOrDesc = "desc";
+                                label = "Z-A";
+                                category = "name";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Popularity</p>
+                            <li on:click={() => {
+                                sortBy = "numRatings"
+                                ascOrDesc = "desc";
+                                label = "Highest";
+                                category = "popularity";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                            <li on:click={() => {
+                                sortBy = "numRatings"
+                                ascOrDesc = "asc";
+                                label = "Lowest";
+                                category = "popularity";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Album type</p>
+                            <li on:click={() => {
+                                if (sortBy === "release_date") {
+                                    sortBy = "album.release_date";
+                                }
+                                type = "tracks";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Track</li>
+                            <li on:click={() => {
+                                if (sortBy === "album.release_date") {
+                                    sortBy = "release_date";
+                                }
+                                type = "albums";
+                                refreshQuery();
+                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Album</li>
+                        </ul>
+                    </Dropdown>
+                </span>
+    
+            </div>
             <div class="grid grid-cols-3 justify-center grid-flow-row-dense gap-4">
-                {#each tracks as track}
-                    <BigTrackThumbnail date={track?.data?.album?.release_date} classes="" href="/track/{track.id}" src={track.data.album.images[1].url} alt="" title={track.data.name} artist={track.data.album.artists[0].name}/>
-                {/each}
+                {#if type === "tracks"}
+                    {#if tracks.length === 0}
+                        <p>No tracks found.</p>
+                    {/if}
+                    {#each tracks as track}
+                        <BigTrackThumbnail date={track?.data?.album?.release_date} classes="" href="/track/{track.id}" src={track.data.album.images[1].url} alt="" title={track.data.name} artist={track.data.album.artists[0].name}/>
+                    {/each}
+                {:else}
+                    {#if tracks.length === 0}
+                        <p>No albums found.</p>
+                    {/if}
+                    {#each tracks as track}
+                        <BigTrackThumbnail date={track?.data?.release_date} classes="" href="/album/{track.id}" src={track.data.images[1].url} alt="" title={track.data.name} artist={track.data.artists[0].name}/>
+                    {/each}
+                {/if}
             </div>
         </div>
     </div>

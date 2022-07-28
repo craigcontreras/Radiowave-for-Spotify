@@ -1,5 +1,7 @@
 <script>
 	import { slide } from 'svelte/transition';
+    import { tweened } from "svelte/motion";
+    import { cubicOut } from "svelte/easing";
 	import Cropper from './Cropper.svelte';
     import imageCompression from "browser-image-compression";
     import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -15,7 +17,10 @@
     let startedUpload;
     let status = "";
     let fileName = "none";
-    let progress = 0;
+    let progress = tweened(0, {
+        duration: 400,
+        easing: cubicOut,
+    });
     let cropper;
     let hideFileUpload;
     let itemDrag = false;
@@ -41,13 +46,14 @@
     }
 
     async function initialUploadToStorage(blob) {
+        progress.set(0);
         fileReference = ref(storage, "images/" + uuidv4());
         const uploadTask = uploadBytesResumable(fileReference, blob, {
             contentType: blob.type,   
         });
         startedUpload = true;
         uploadTask.on("state_changed", (snapshot) => {
-            progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            progress.set((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
             
             switch (snapshot.state) {
                 case "paused":
@@ -84,6 +90,7 @@
     }
 
     async function finalUploadToStorage(blob) {
+        progress.set(0);
         const fileReference = ref(storage, "images/" + uuidv4());
         const compressedFile = await imageCompression(blob, {
             maxSizeMB: 1,
@@ -96,7 +103,7 @@
         });
         startedUpload = true;
         uploadTask.on("state_changed", (snapshot) => {
-            progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            progress.set((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
             
             switch (snapshot.state) {
                 case "paused":
@@ -185,7 +192,7 @@
             {/if}
             {#if startedUpload}
                 <div transition:slide>
-                    <progress class="progress progress-primary w-56" value={progress} max="100"></progress><span class="ml-1">{progress}%</span>
+                    <progress class="progress progress-primary w-56" value={$progress} max="100"></progress><span class="ml-1">{Math.round($progress)}%</span>
                 </div>
             {/if}
         </div>

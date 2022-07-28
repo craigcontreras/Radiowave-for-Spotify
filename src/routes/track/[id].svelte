@@ -10,7 +10,7 @@
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-    import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, limit, where } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, limit, where, updateDoc, increment } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
     import { v4 as uuidv4 } from "uuid";
@@ -127,6 +127,7 @@
     async function initialLoad(userAccessToken, userRefreshToken) {
         if (refreshed > 1) {
             goto("/error");
+            return;
         }
 
         const trackPage = axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
@@ -313,6 +314,16 @@
             } else if (trackData?.avgRating >= 70 && trackData?.avgRating <= 100) {
                 ratingColor = "bg-green-600";
             }
+
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+            const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+            const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+            setDoc(doc(db, `tracks/${$page.params.id}/counter/${date}`), {
+                pageViews: increment(1),
+                date: dateObj,
+            }, {
+                merge: true
+            });
         } else {
             if (browser) {
                 goto("/error");
@@ -701,9 +712,9 @@
     }} bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
         <div class="my-8 basis-3/5">
-            <h1 class="text-6xl font-black">{trackData?.name}</h1> 
-            <h2 class="text-4xl font-bold">by <a class="hover:underline" href="/artist/{trackData?.album?.artists[0]?.id}">{trackData?.album?.artists[0]?.name}</a></h2>
-            <h3 class="text-2xl font-medium">on
+            <h1 class="max-w-[90%] text-6xl font-black">{trackData?.name}</h1> 
+            <h2 class="max-w-[90%] text-4xl font-bold">by <a class="hover:underline" href="/artist/{trackData?.album?.artists[0]?.id}">{trackData?.album?.artists[0]?.name}</a></h2>
+            <h3 class="max-w-[90%] text-2xl font-medium">on
                 {#if trackData?.album?.album_type !== "single" || trackData?.album?.total_tracks >= 4}
                     <a class="hover:underline" href="/album/{trackData?.album?.id}">{trackData?.album?.name}</a>
                 {:else}

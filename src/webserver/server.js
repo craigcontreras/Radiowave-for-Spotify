@@ -116,7 +116,7 @@ app.get("/callback", (req, res) => {
                     Authorization: `Bearer ${access}`
                 }
             });
-            const spotifyTopTracks = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
+            const spotifyTopTracksPastFourWeeks = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
                 params : {
                     time_range: "short_term",
                 },
@@ -124,7 +124,7 @@ app.get("/callback", (req, res) => {
                     Authorization: `Bearer ${access}`
                 }
             });
-            const spotifyTopArtists = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
+            const spotifyTopArtistsPastFourWeeks = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
                 params : {
                     time_range: "short_term",
                 },
@@ -132,31 +132,134 @@ app.get("/callback", (req, res) => {
                     Authorization: `Bearer ${access}`
                 }
             });
-            axios.all([spotifyMe, spotifyTopTracks, spotifyTopArtists]).then(axios.spread(async (...allResponses) => {
+            const spotifyTopTracksPastSixMo = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
+                params : {
+                    time_range: "medium_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            const spotifyTopArtistsPastSixMo = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
+                params : {
+                    time_range: "medium_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            const spotifyTopTracksPastLifetime = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
+                params : {
+                    time_range: "long_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            const spotifyTopArtistsPasLifetime = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
+                params : {
+                    time_range: "long_term",
+                },
+                headers: {
+                    Authorization: `Bearer ${access}`
+                }
+            });
+            axios.all([spotifyMe, spotifyTopTracksPastFourWeeks, spotifyTopArtistsPastFourWeeks, spotifyTopTracksPastSixMo, spotifyTopArtistsPastSixMo, spotifyTopTracksPastLifetime, spotifyTopArtistsPasLifetime]).then(axios.spread(async (...allResponses) => {
                 const userData = allResponses[0];
-                const topTracks = allResponses[1];
-                const topArtists = allResponses[2];
+                const topTracksPastFourWeeks = allResponses[1];
+                const topArtistsPastFourWeeks = allResponses[2];
+                const topTracksPastSixMo = allResponses[3];
+                const topArtistsPastSixMo = allResponses[4];
+                const topTracksPastLifetime = allResponses[5];
+                const topArtistsPastLifetime = allResponses[6];
                 
-                let tracks = [];
-
-                for (let track of topTracks.data.items) {
-                    tracks.push(track.id);
+                let tracksFourWeeks = [];
+                for (let track of topTracksPastFourWeeks.data.items) {
+                    tracksFourWeeks.push(track.id);
+                    tracksFourWeeks = tracksFourWeeks;
                 }
                 
-                let artists = [];
-
-                for (let artist of topArtists.data.items) {
-                    artists.push(artist.id);
+                let artistsFourWeeks = [];
+                for (let artist of topArtistsPastFourWeeks.data.items) {
+                    artistsFourWeeks.push(artist.id);
+                    artistsFourWeeks = artistsFourWeeks;
+                }
+                
+                let tracksFourWeeksFullData = [];
+                for (let track of topTracksPastFourWeeks.data.items) {
+                    tracksFourWeeksFullData.push({
+                        id: track.id,
+                        name: track.name,
+                        artist: track.artists[0].name,
+                        image: track.album.images[1].url,
+                    });
+                    tracksFourWeeksFullData = tracksFourWeeksFullData;
+                }
+                
+                let artistsFourWeeksFullData = [];
+                for (let artist of topArtistsPastFourWeeks.data.items) {
+                    artistsFourWeeksFullData.push({
+                        id: artist.id,
+                        name: artist.name,
+                        image: artist.images[1].url,
+                    });
+                    artistsFourWeeksFullData = artistsFourWeeksFullData;
+                }
+                
+                let tracksSixMo = [];
+                for (let track of topTracksPastSixMo.data.items) {
+                    tracksSixMo.push({
+                        id: track.id,
+                        name: track.name,
+                        artist: track.artists[0].name,
+                        image: track.album.images[1].url,
+                    });
+                    tracksSixMo = tracksSixMo;
+                }
+                
+                let artistsSixMo = [];
+                for (let artist of topArtistsPastSixMo.data.items) {
+                    artistsSixMo.push({
+                        id: artist.id,
+                        name: artist.name,
+                        image: artist.images[1].url,
+                    });
+                    artistsSixMo = artistsSixMo;
+                }
+                
+                let tracksLifetime = [];
+                for (let track of topTracksPastLifetime.data.items) {
+                    tracksLifetime.push({
+                        id: track.id,
+                        name: track.name,
+                        artist: track.artists[0].name,
+                        image: track.album.images[1].url,
+                    });
+                    tracksLifetime = tracksLifetime;
+                }
+                
+                let artistsLifetime = [];
+                for (let artist of topArtistsPastLifetime.data.items) {
+                    artistsLifetime.push({
+                        id: artist.id,
+                        name: artist.name,
+                        image: artist.images[1].url,
+                    });
+                    artistsLifetime = artistsLifetime;
                 }
 
-                const customToken = await createFirebaseAccount(userData.data.id, access, refresh, userData.data.display_name, userData.data.images[0].url, userData.data.email, tracks, artists);
+                const customToken = await createFirebaseAccount(userData.data.id, access, 
+                    refresh, userData.data.display_name, userData.data.images[0].url, 
+                    userData.data.email, tracksFourWeeks, artistsFourWeeks, artistsFourWeeksFullData, 
+                    tracksFourWeeksFullData, artistsSixMo, tracksSixMo, artistsLifetime,
+                    tracksLifetime);
                 const customTokenEncrypted = encryption.encrypt(customToken);
                 res.cookie("access_firebase", customTokenEncrypted, {
                     secure: true,
                     httpOnly: true,
                     maxAge: 3600,
                 });
-                startCronJobs(access, refresh, userData.data.uid);
+                startCronJobs(access, refresh, userData.data.id);
                 res.redirect("/signin");
             }));
         });
@@ -170,7 +273,7 @@ app.listen(3000, () => {
 });
 
 //firebase functions
-async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists) {
+async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists, artistsPastFourWeeks, tracksPastFourWeeks, artistsPastSixMonths, tracksPastSixMonths, artistsPastLifetime, tracksPastLifetime) {
     const createAccount = getAuth().updateUser(uuid, {
         email,
         emailVerified: true,
@@ -195,7 +298,15 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
         access,
         refresh,
         topTracks,
-        topArtists
+        topArtists,
+        artistsPastFourWeeks,
+        tracksPastFourWeeks,
+        artistsPastSixMonths,
+        tracksPastSixMonths,
+        artistsPastLifetime,
+        tracksPastLifetime,
+    }, {
+        merge: true,
     });
 
     const token = await getAuth().createCustomToken(uuid);
@@ -205,8 +316,8 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
 function startCronJobs(access, refresh, uuid) {
     //cron job that runs every 5 minutes
     //this one gets the user's recently played and uses pusher to serve the new tracks in real time
-    const fiveMin = cron.schedule('*/5 * * * *', () => {
-        axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=5", {
+    const fiveMin = cron.schedule('*/1 * * * *', () => {
+        axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
             headers: {
                 Authorization: `Bearer ${access}`
             }        
@@ -214,7 +325,10 @@ function startCronJobs(access, refresh, uuid) {
             const items = data.data.items;
             const arr = items.map(e => ({
                 played_at: e.played_at,
-                track_name: e.track.name
+                id: e.track.id,
+                name: e.track.name,
+                artist: e.track.album.artists[0].name,
+                image: e.track.album.images[1].url,
             }));
 
             pusher.trigger("cache-recently-played", uuid, {
@@ -236,7 +350,7 @@ function startCronJobs(access, refresh, uuid) {
                 }).then(spotifyData => {
                     //if we can refresh the access, then retry
                     const newAccess = spotifyData.data.access_token;
-                    axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=5", {
+                    axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                         headers: {
                             Authorization: `Bearer ${newAccess}`
                         }        
@@ -244,7 +358,10 @@ function startCronJobs(access, refresh, uuid) {
                         const items = tracksData.data.items;
                         const arr = items.map(e => ({
                             played_at: e.played_at,
-                            track_name: e.track.name
+                            id: e.track.id,
+                            name: e.track.name,
+                            artist: e.tracks.artists[0].name,
+                            image: e.tracks.images[1].url,
                         }));
 
                         pusher.trigger("cache-recently-played", uuid, {
@@ -262,49 +379,49 @@ function startCronJobs(access, refresh, uuid) {
     //cron job that executes every 13 minutes
     //this one is for tracking the user's recently played and adding it to firebase
     //unsure if this will be implemented fully since this could be potentially super expensive on firebase
-    const thirteenMin = cron.schedule('*/13 * * * *', () => {
-        axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
-            headers: {
-                Authorization: `Bearer ${access}`
-            }        
-        }).then(data => {
-            for (let item of data.data.items) {
-                console.log(item);
-            }
+    // const thirteenMin = cron.schedule('*/13 * * * *', () => {
+    //     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
+    //         headers: {
+    //             Authorization: `Bearer ${access}`
+    //         }        
+    //     }).then(data => {
+    //         for (let item of data.data.items) {
+    //             console.log(item);
+    //         }
             
-            pusher.trigger("spotify-scrobbles", uuid, {
-                test: "test" 
-            });
-        }).catch(err => {
-            if (err.response.status === 401) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", refresh);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
-                    headers: {
-                        "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then((spotifyData) => {
-                    const newAccess = spotifyData.data.access_token;
-                    axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
-                        headers: {
-                            Authorization: `Bearer ${newAccess}`
-                        }        
-                    }).then(tracksData => {
-                        for (let item of data.data.items) {
-                            console.log(item);
-                        }
+    //         pusher.trigger("spotify-scrobbles", uuid, {
+    //             test: "test" 
+    //         });
+    //     }).catch(err => {
+    //         if (err.response.status === 401) {
+    //             const params = new URLSearchParams();
+    //             params.append("grant_type", "refresh_token");
+    //             params.append("refresh_token", refresh);
+    //             params.append("client_id", id);
+    //             axios.post("https://accounts.spotify.com/api/token", params, {
+    //                 headers: {
+    //                     "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
+    //                     "Content-Type": "application/x-www-form-urlencoded"
+    //                 }
+    //             }).then((spotifyData) => {
+    //                 const newAccess = spotifyData.data.access_token;
+    //                 axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
+    //                     headers: {
+    //                         Authorization: `Bearer ${newAccess}`
+    //                     }        
+    //                 }).then(tracksData => {
+    //                     for (let item of data.data.items) {
+    //                         console.log(item);
+    //                     }
                         
-                        pusher.trigger("spotify-scrobbles", uuid, {
-                            test: "test" 
-                        });
-                    }).catch(err => {
-                        thirteenMin.stop();
-                    });
-                })
-            }
-        })
-    });
+    //                     pusher.trigger("spotify-scrobbles", uuid, {
+    //                         test: "test" 
+    //                     });
+    //                 }).catch(err => {
+    //                     thirteenMin.stop();
+    //                 });
+    //             })
+    //         }
+    //     })
+    //});
 }
