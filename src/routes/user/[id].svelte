@@ -383,6 +383,15 @@
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
             </div>
+            <div class="likes">
+
+            </div>
+            <div class="lists">
+                
+            </div>
+            <div class="tags">
+
+            </div>
         </div>
     </div>
 </div>
