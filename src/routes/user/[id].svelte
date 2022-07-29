@@ -119,6 +119,10 @@
         changeMode = !changeMode;
         biographyCollapsed = true;
     }
+
+    async function fetchRecentReviews() {
+
+    }
 </script>
 
 <div class="page mx-6">
@@ -236,14 +240,8 @@
             {/if}
         </div>
         <div class="content basis-4/5 pr-14">
-            <div class="recent-ratings">
-                <h2 class="text-4xl mb-4 font-black">Latest ratings</h2>
-                <div class="grid grid-flow-row-dense">
-
-                </div>
-            </div>
             {#if recentPlays.length !== 0}
-                <div class="recent-plays mt-6">
+                <div class="recent-plays">
                     <h2 class="text-4xl mb-4 font-black">Recent plays</h2>
                     <div class="flex flex-col gap-1 fade-bottom">
                         {#each recentPlays.slice(0, 5) as item}

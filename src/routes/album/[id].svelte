@@ -702,7 +702,7 @@ import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
         {:else}
             <h3 class="text-2xl font-bold">{albumData?.numRatings} reviews</h3>
         {/if}
-        <TrackReview fromDoc="albums/{$page.params.id}/reviews/{userId}" fromCollection="albums/{$page.params.id}/reviews" commentHref="/album/reviews/{$page.params.id}/" likeDoc="albums/{$page.params.id}/reviews/" trackId={$page.params.id} {userId}/>    
+        <TrackReview fromDoc="albums/{$page.params.id}/reviews/{userId}" fromCollection="albums/{$page.params.id}/reviews" commentHref="/album/reviews/{$page.params.id}/" likeDoc="albums/{$page.params.id}/reviews/" trackId={$page.params.id} trackName={albumData?.name} trackAuthor={albumData?.artists[0]?.name} trackHref={albumData?.images[1]?.url} {userId}/>    
     </div>
     <div class="divider"></div>
     <div class="shoutbox">

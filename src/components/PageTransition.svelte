@@ -1,7 +1,7 @@
 <script>
     import { fly } from "svelte/transition";
     export let url = "";
-    const duration = 300;
+    const duration = 200;
 </script>
 
 {#key url}

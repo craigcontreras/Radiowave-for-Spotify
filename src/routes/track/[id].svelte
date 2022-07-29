@@ -1,5 +1,5 @@
 <script>
-	import TrackThumbnail from './../../components/thumbnails/TrackThumbnail.svelte';
+    import TrackThumbnail from './../../components/thumbnails/TrackThumbnail.svelte';
 	import Modal from './../../components/Modal.svelte';
 	import InputWithTypeahead from './../../components/InputWithTypeahead.svelte';
 	import Rating from './../../components/Rating.svelte';
@@ -64,6 +64,35 @@
 
     let duration = "";
     let trackData = {};
+    let views = [];
+    let dates = [];
+    let options = {
+        chart: {
+            type: "line",
+            toolbar: {
+                show: false,
+            },
+            zoom: {
+                enabled: false,
+            },
+            height: "85%",
+            width: "100%"
+        },
+        dataLabels: {
+            enabled: false,  
+        },
+        series: [
+            {
+                name: "views",
+                data: views,
+            }
+        ],
+        xaxis: {
+            categories: dates
+        }
+    };
+    let chartMethod;
+    let chartLoaded;
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 
@@ -92,7 +121,13 @@
     let refreshed = 0;
     const id = "4d5e942d117f4de793c86a1c53c3d393";
 
-    onMount(() => {
+    let showGraph = false;
+
+    onMount(async () => {
+        const { chart } = await import("svelte-apexcharts");
+        chartMethod = chart;
+        chartLoaded = true;
+
         loginToFirebase();
         //for the detail element changing position
         if (browser) {
@@ -318,12 +353,91 @@
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
             const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
             const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-            setDoc(doc(db, `tracks/${$page.params.id}/counter/${date}`), {
+            await setDoc(doc(db, `tracks/${$page.params.id}/counter/${date}`), {
                 pageViews: increment(1),
                 date: dateObj,
             }, {
                 merge: true
             });
+
+            const counterRef = collection(db, `tracks/${$page.params.id}/counter`);
+            const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
+            const counterDocs = await getDocs(counterQuery);
+            counterDocs.forEach(doc => {
+                views.push(doc.data().pageViews);
+                dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
+                views = views;
+                dates = dates;
+            });
+
+            options = {
+                chart: {
+                    type: "area",
+                    toolbar: {
+                        show: false,
+                    },
+                    zoom: {
+                        enabled: false,
+                    },
+                    height: "85%",
+                    width: "100%",
+                },
+                dataLabels: {
+                    enabled: false,  
+                },
+                grid: {
+                    show: false,
+                },
+                yaxis: {
+                    axisTicks: {
+                        show: false,
+                    },
+                    labels: {
+                        show: false,
+                    }
+                },
+                xaxis: {
+                    tooltip: {
+                        enabled: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    }
+                },
+                stroke: {
+                    show: true,
+                    curve: "straight",
+                    lineCap: "round",
+                    width: 4,
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        shadeIntensity: 0.75,
+                        opacityFrom: 1,
+                        opacityTo: 0.25,
+                        stops: [0],
+                        type: "vertical",
+                    }
+                },
+                tooltip: {
+                    marker: {
+                        show: false,
+                    },
+                    x: {
+                        show: false,
+                    }
+                },
+                series: [
+                    {
+                        name: "views",
+                        data: views,
+                    }
+                ],
+                xaxis: {
+                    categories: dates
+                }
+            };
         } else {
             if (browser) {
                 goto("/error");
@@ -850,7 +964,6 @@
                         {/each}
                         <InputWithTypeahead collectionType="producers" on:handleTypeaheadCreation={handleTypeaheadCreationForProducers} bind:hideTypeaheadCreate={hideTypeaheadCreateForProducers} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForProducers} bind:currentLabelText={currentProducerText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForProducers} bind:autocompleteResults={autocompleteResultsForProducers}/>
                     </p>                    
-
                     <p class="italic text-gray-400">writers 
                         {#if publicWriters.length > 3}
                             <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
@@ -888,6 +1001,12 @@
                     <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
                 </form>
             </div>
+            {#if chartLoaded}
+            <div class="graph mt-6 flex flex-col justify-end items-end">
+                <p class="font-bold text-right max-w-[90%]">Popularity of {trackData?.name} in the past week</p>
+                <div class="" use:chartMethod={options}></div>
+            </div>
+            {/if}
         </div>
     </div>
 </div>
@@ -926,7 +1045,7 @@
     {:else}
         <h3 class="text-2xl font-bold">{trackData?.numRatings} reviews</h3>
     {/if}
-    <TrackReview fromDoc="tracks/{$page.params.id}/reviews/{userId}" fromCollection="tracks/{$page.params.id}/reviews" commentHref="/track/reviews/{$page.params.id}/" likeDoc="tracks/{$page.params.id}/reviews/" trackId={$page.params.id} {userId}/>
+    <TrackReview fromDoc="tracks/{$page.params.id}/reviews/{userId}" fromCollection="tracks/{$page.params.id}/reviews" commentHref="/track/reviews/{$page.params.id}/" likeDoc="tracks/{$page.params.id}/reviews/" trackId={$page.params.id} trackName={trackData?.name} trackAuthor={trackData?.album?.artists[0]?.name} trackHref={trackData?.album?.images[1]?.url} {userId}/>
 </div>
 
 <div class="mx-6 divider"></div>

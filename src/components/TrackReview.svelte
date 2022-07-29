@@ -1,6 +1,5 @@
 <script>
     import Review from './Review.svelte';
-	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { collection, serverTimestamp, doc, orderBy, query, writeBatch, getDocs, limit, startAfter } from "firebase/firestore";
@@ -9,6 +8,9 @@
     import { auth, db } from "../firebase.js";
 
     export let trackId;
+    export let trackName;
+    export let trackAuthor;
+    export let trackHref;
     export let userId;
     export let commentHref;
     export let likeDoc;
@@ -139,6 +141,10 @@
                 message,
                 likes: [],
                 likeCount: 0,
+                trackId,
+                trackName,
+                trackAuthor,
+                trackHref,
             });
             await batch.commit();
             if (browser) {
