@@ -363,11 +363,26 @@
             const counterRef = collection(db, `tracks/${$page.params.id}/counter`);
             const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
             const counterDocs = await getDocs(counterQuery);
-            counterDocs.forEach(doc => {
-                views.push(doc.data().pageViews);
-                dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
-                views = views;
+
+            const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
+            range.forEach(date => {
+                dates.push(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);    
                 dates = dates;
+                views.push({
+                    x: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+                    y: 0
+                });
+            });
+
+            counterDocs.forEach((doc, index) => {
+                remove(views, (obj) => {
+                    return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
+                })
+                views.push({
+                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
+                    y: doc.data().pageViews
+                });
+                // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
             });
 
             options = {
@@ -394,7 +409,8 @@
                     },
                     labels: {
                         show: false,
-                    }
+                    },
+                    forceNiceScale: true,
                 },
                 xaxis: {
                     tooltip: {
@@ -784,6 +800,14 @@
                 userActivity = userActivity;
             }
         });
+    }
+
+    const getDaysArray = function (start, end) {
+        for (var arr = [], dt = new Date(start); dt <= new Date(end); dt.setDate(dt.getDate() + 1)) {
+            arr.push(new Date(dt));
+        }
+
+        return arr;
     }
 </script>
 
