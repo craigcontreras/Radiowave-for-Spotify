@@ -92,7 +92,7 @@
         }
     };
     let chartMethod;
-    let chartLoaded;
+    let chartLoaded = false;
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 
@@ -442,7 +442,8 @@
                     },
                     x: {
                         show: false,
-                    }
+                    },
+                    theme: "dark"
                 },
                 series: [
                     {
@@ -1026,7 +1027,7 @@
                 </form>
             </div>
             {#if chartLoaded}
-            <div class="graph mt-6 flex flex-col justify-end items-end">
+            <div transition:slide class="graph mt-6 flex flex-col justify-end items-end">
                 <p class="font-bold text-right max-w-[90%]">Popularity of {trackData?.name} in the past week</p>
                 <div class="" use:chartMethod={options}></div>
             </div>

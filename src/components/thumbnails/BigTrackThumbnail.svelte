@@ -7,7 +7,7 @@
     export let classes;
     export let date;
 
-    let releaseDate = date.toDate();
+    let releaseDate = date;
 </script>
 
 <a {href} class="{classes} inline-flex break-words w-40 min-h-[15rem] flex-col gap-1 bg-gray-800 p-4 rounded-lg drop-shadow-xl hover:-translate-y-1 transition-all">
@@ -18,7 +18,11 @@
         <h2 class="font-black mt-1">{title}</h2>
     {/if}
     <p class="text-md">{artist}</p>
-    <p class="text-xs">{releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
+    {#if typeof(releaseDate) === "string"}
+        <p class="text-xs">{releaseDate}</p>
+    {:else}
+        <p class="text-xs">{releaseDate?.toDate().getUTCFullYear()}-{releaseDate?.toDate().getUTCMonth() + 1}-{releaseDate?.toDate().getUTCDate()}</p>
+    {/if}
 </a>
 
 <style>

@@ -17,7 +17,7 @@
     import Modal from '../../components/Modal.svelte';
     import TrackReview from '../../components/TrackReview.svelte';
     import Comments from '../../components/Comments.svelte';
-import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
+    import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
 
     let userLoaded = false;
     let albumData;
@@ -68,11 +68,46 @@ import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
     let moreTracksByArtist = [];
     let moreTracks = [];
 
+    let dates = [];
+    let views = [];
+
+    let options = {
+        chart: {
+            type: "line",
+            toolbar: {
+                show: false,
+            },
+            zoom: {
+                enabled: false,
+            },
+            height: "85%",
+            width: "100%"
+        },
+        dataLabels: {
+            enabled: false,  
+        },
+        series: [
+            {
+                name: "views",
+                data: views,
+            }
+        ],
+        xaxis: {
+            categories: dates
+        }
+    };
+    let chartMethod;
+    let chartLoaded;
+
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
     const id = "4d5e942d117f4de793c86a1c53c3d393";
 
-    onMount(() => {
+    onMount(async () => {
         loginToFirebase();
+
+        const { chart } = await import("svelte-apexcharts");
+        chartMethod = chart;
+        chartLoaded = true;
 
         if (browser) {
             const observer = new IntersectionObserver(entries => {
@@ -246,12 +281,114 @@ import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
             const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
             const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-            setDoc(doc(db, `albums/${$page.params.id}/counter/${date}`), {
+            await setDoc(doc(db, `albums/${$page.params.id}/counter/${date}`), {
                 pageViews: increment(1),
                 date: dateObj,
             }, {
                 merge: true
             });
+
+            await setDoc(doc(db, `statistics/${$page.params.id}`), {
+                views: increment(1),
+            }, {
+                merge: true
+            });
+
+            const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
+            range.forEach(date => {
+                dates.push(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);    
+                dates = dates;
+                views.push({
+                    x: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+                    y: 0
+                });
+            });
+
+            const counterRef = collection(db, `albums/${$page.params.id}/counter`);
+            const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
+            const counterDocs = await getDocs(counterQuery);
+
+            counterDocs.forEach((doc, index) => {
+                remove(views, (obj) => {
+                    return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
+                })
+                views.push({
+                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
+                    y: doc.data().pageViews
+                });
+                // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
+            });
+
+            options = {
+                chart: {
+                    type: "area",
+                    toolbar: {
+                        show: false,
+                    },
+                    zoom: {
+                        enabled: false,
+                    },
+                    height: "85%",
+                    width: "100%",
+                },
+                dataLabels: {
+                    enabled: false,  
+                },
+                grid: {
+                    show: false,
+                },
+                yaxis: {
+                    axisTicks: {
+                        show: false,
+                    },
+                    labels: {
+                        show: false,
+                    },
+                    forceNiceScale: true,
+                },
+                xaxis: {
+                    tooltip: {
+                        enabled: false,
+                    },
+                    axisTicks: {
+                        show: false,
+                    }
+                },
+                stroke: {
+                    show: true,
+                    curve: "straight",
+                    lineCap: "round",
+                    width: 4,
+                },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        shadeIntensity: 0.75,
+                        opacityFrom: 1,
+                        opacityTo: 0.25,
+                        stops: [0],
+                        type: "vertical",
+                    }
+                },
+                tooltip: {
+                    marker: {
+                        show: false,
+                    },
+                    x: {
+                        show: false,
+                    },
+                    theme: "dark"
+                },
+                series: [
+                    {
+                        name: "views",
+                        data: views,
+                    }
+                ],
+                xaxis: {
+                    categories: dates
+                }
+            };
         } else {
             if (browser) {
                 goto("/error");
@@ -483,6 +620,15 @@ import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
             moreTracks = moreTracks;
         });
     }
+
+
+    const getDaysArray = function (start, end) {
+        for (var arr = [], dt = new Date(start); dt <= new Date(end); dt.setDate(dt.getDate() + 1)) {
+            arr.push(new Date(dt));
+        }
+
+        return arr;
+    }
 </script>
 
 <Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
@@ -681,6 +827,12 @@ import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
                         <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
                     </form>
                 </div>
+                {#if chartLoaded}
+                    <div transition:slide class="graph mt-6 flex flex-col justify-end items-end">
+                        <p class="font-bold text-right max-w-[90%]">Popularity of {albumData?.name} in the past week</p>
+                        <div class="" use:chartMethod={options}></div>
+                    </div>
+                {/if}    
             </div>
         </div>
     </div>
