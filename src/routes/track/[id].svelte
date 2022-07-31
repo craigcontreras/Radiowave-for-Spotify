@@ -178,11 +178,7 @@
         axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
             const trackPageData = res[0];
             const trackFeaturesData = res[1];
-            const dates = trackPageData.data.album.release_date.split("-");
-            const year = dates[0];
-            const month = dates[1];
-            const day = dates[2];
-            const date = new Date(year, month - 1, day);
+            const date = new Date(trackPageData.data.album.release_date);
             const spotifyData = {
                 album: {
                     album_type: trackPageData.data.album.album_type,
@@ -220,9 +216,9 @@
                 genreNames: [],
                 producerNames: [],
                 writerNames: [],
-                year,
-                month,
-                day,
+                year: date.getFullYear() || 0,
+                month: date.getMonth() || 0,
+                day: date.getDate() || 0,
             };
 
             await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
@@ -254,6 +250,12 @@
             findRecommendations();
             findUserActivity();
         })).catch(err => {
+            if (err?.response?.status === 400) {
+                if (browser) {
+                    goto("/error");
+                }
+                return;
+            }
             if (refreshed < 1) {
                 const params = new URLSearchParams();
                 params.append("grant_type", "refresh_token");
@@ -851,7 +853,7 @@
     }} bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
         <div class="my-8 basis-3/5">
-            <h1 class="max-w-[90%] text-6xl font-black">{trackData?.name}</h1> 
+            <h1 class="max-w-[90%] text-6xl break-words font-black">{trackData?.name}</h1> 
             <h2 class="max-w-[90%] text-4xl font-bold">by <a class="hover:underline" href="/artist/{trackData?.album?.artists[0]?.id}">{trackData?.album?.artists[0]?.name}</a></h2>
             <h3 class="max-w-[90%] text-2xl font-medium">on
                 {#if trackData?.album?.album_type !== "single" || trackData?.album?.total_tracks >= 4}

@@ -29,6 +29,7 @@
     let artistData;
     let artistAlbums = [];
     let artistSingles = [];
+    let artistAppearances = [];
     let changeMode = false;
     let biographyCollapsed = false;
 
@@ -37,6 +38,10 @@
     let youtubeLink = "";
     let facebookLink = "";
     let websiteLink = "";
+
+    let showMoreAppearances = false;
+    let showMoreSingles = false;
+    let showMoreAlbums = false;
 
     let currentGenreText = "";
     let genresForQuerying = [];
@@ -47,6 +52,9 @@
     let hideModalGenres = true;
 
     let refreshed = 0;
+    let refreshedForTracks = 0;
+    const id = "4d5e942d117f4de793c86a1c53c3d393";
+    let userId = "";
 
     onMount(() => {
         loginToFirebase();
@@ -123,9 +131,119 @@
         });
     }
 
+    async function getArtistTracksAndAlbums(userAccessToken, userRefreshToken) {
+        if (refreshedForTracks > 1) {
+            if (browser) {
+                goto("/error");
+            }
+            return;
+        }
+
+        const getAlbums = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}/albums`, {
+            params: {
+                include_groups: "album",
+                limit: "50",
+            },
+            headers: {
+                Authorization: `Bearer ${userAccessToken}`,
+            },
+        });
+
+        const getTracks = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}/albums`, {
+            params: {
+                include_groups: "single",
+                limit: "50",
+            },
+            headers: {
+                Authorization: `Bearer ${userAccessToken}`,
+            },
+        });
+
+        const getAppearances = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}/albums`, {
+            params: {
+                include_groups: "appears_on",
+                limit: "50",
+            },
+            headers: {
+                Authorization: `Bearer ${userAccessToken}`,
+            },
+        });
+
+        axios.all([getAlbums, getTracks, getAppearances]).then(axios.spread(async (...allResponses) => {
+            const albums = allResponses[0];
+            const tracks = allResponses[1];
+            const appearances = allResponses[2];
+
+            for (let item of albums.data.items) {
+                if (!find(artistAlbums, { normalName: item.name.toLowerCase().replaceAll(/[^a-z0-9A-Z ]/g, "") })) {
+                    artistAlbums.push({
+                        ...item,
+                        normalName: item.name.toLowerCase().replaceAll(/[^a-z0-9A-Z ]/g, ""),
+                    });
+                }
+            }
+
+            artistAlbums = artistAlbums;
+
+            for (let item of tracks.data.items) {
+                console.log(item);
+                if (!find(artistSingles, { normalName: item.name.replaceAll(" - EP", "").replaceAll(" - Single", "").trim().toLowerCase().replaceAll(/[^a-zA-Z ]/g, "") }) ) {
+                    artistSingles.push({
+                        ...item,
+                        normalName: item.name.replaceAll(" - EP", "").replaceAll(" - Single", "").trim().toLowerCase().replaceAll(/[^a-zA-Z ]/g, ""),
+                    });
+                }
+            }
+
+            artistSingles = artistSingles;
+
+            for (let item of appearances.data.items) {
+                if (!find(artistAppearances, { normalName: item.name.replaceAll(" - EP", "").replaceAll(" - Single", "").trim().toLowerCase().replaceAll(/[^a-zA-Z ]/g, "") })) {
+                    artistAppearances.push({
+                        ...item,
+                        normalName: item.name.replaceAll(" - EP", "").replaceAll(" - Single", "").trim().toLowerCase().replaceAll(/[^a-zA-Z ]/g, ""),
+                    });
+                }
+            }
+
+            artistAppearances = artistAppearances;
+            refreshedForTracks++;
+        })).catch(err => {
+            if (refreshedForTracks < 1) {
+                const params = new URLSearchParams();
+                params.append("grant_type", "refresh_token");
+                params.append("refresh_token", userRefreshToken);
+                params.append("client_id", id);
+                axios.post("https://accounts.spotify.com/api/token", params, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                }).then(async (spotifyData) => {
+                    const newAccess = spotifyData.data.access_token;
+                    const newRefresh = spotifyData.data.refresh_token;
+                    await setDoc(doc(db, `users/${userId}`), {
+                        access: newAccess,
+                        refresh: newRefresh
+                    }, {
+                        merge: true
+                    });
+                    refreshedForTracks++;
+                    getArtistTracksAndAlbums(newAccess, newRefresh);
+                }).catch(err => {
+                    refreshedForTracks++;
+                });
+            } else {
+                if (browser) {
+                    goto("/error");
+                }
+            }
+        });
+    }
+
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
+            userId = user.uid;
             const userDataDocument = await getDoc(doc(db, `users/${user.uid}`));
             let userAccessToken = userDataDocument.data().access;
             let userRefreshToken = userDataDocument.data().refresh;
@@ -140,34 +258,10 @@
                 facebookLink = artistData?.facebookHref;
                 publicGenres = artistData?.genre,
                 genresForQuerying = artistData?.genreNames;
-
-                const getAlbums = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}/albums`, {
-                    params: {
-                        include_groups: "album,compilation",
-                    },
-                    headers: {
-                        Authorization: `Bearer ${userAccessToken}`,
-                    },
-                });
-
-                const getTracks = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}/albums`, {
-                    params: {
-                        include_groups: "single,appears_on",
-                    },
-                    headers: {
-                        Authorization: `Bearer ${userAccessToken}`,
-                    },
-                });
-
-                axios.all([getAlbums, getTracks]).then(axios.spread(async (...allResponses) => {
-                    const albums = allResponses[0];
-                    const tracks = allResponses[1];
-                    artistAlbums = albums.data.items;
-                    artistSingles = tracks.data.items;
-                }));
             } else {
                 initialLoad(userAccessToken, userRefreshToken);
             }
+            getArtistTracksAndAlbums(userAccessToken, userRefreshToken);
         } else {
             if (browser) {
                 goto("/error");
@@ -402,21 +496,86 @@
             <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
         </div>
         <div class="content basis-4/5 pr-14">
-            <h2 class="text-4xl font-black mb-4">Albums</h2>
-            <div class="albums grid grid-flow-row-dense grid-cols-5 gap-4">
-                {#each artistAlbums as album}
-                    <BigTrackThumbnail date={album.release_date} classes="" href="/track/{album.id}" src={album.images[1].url} alt="" title={album.name} artist={album.artists[0].name}/>
-                {/each}
-            </div>
-            <div class="divider"></div>
-            <h2 class="text-4xl font-black mb-4">Singles & EPs</h2>
-            <div class="singles grid grid-flow-row-dense grid-cols-12">
-                {#each artistSingles as single}
-                    <div class="single">
-                        <p>{single.name}</p>
+            {#if artistAlbums.length !== 0}
+                <div class="flex justify-between">
+                    <h2 class="text-4xl font-black mb-4">Albums</h2>
+                    {#if artistAlbums.length > 5}
+                        <button class="hover:-translate-y-1 transition-all drop-shadow-xl" on:click={() => { showMoreAlbums = !showMoreAlbums; }}>view all</button>
+                    {/if}
+                </div>
+                <div class="albums grid grid-flow-row-dense grid-cols-5 gap-4">
+                    {#if artistAlbums.length > 5}
+                        {#each artistAlbums.slice(0, 5) as album}
+                            <BigTrackThumbnail date={album?.release_date} classes="" href="/album/{album?.id}" src={album?.images[1].url} alt="" title={album?.name} artist={album?.artists[0]?.name}/>
+                        {/each}
+                    {:else}
+                        {#each artistAlbums as album}
+                            <BigTrackThumbnail date={album?.release_date} classes="" href="/album/{album?.id}" src={album?.images[1].url} alt="" title={album?.name} artist={album?.artists[0]?.name}/>
+                        {/each}
+                    {/if}
+                </div>
+                {#if showMoreAlbums}
+                    <div transition:slide class="view-more-albums mt-4 grid grid-flow-rose-dense grid-cols-5 gap-4">
+                        {#each artistAlbums.slice(5) as album}
+                            <BigTrackThumbnail date={album?.release_date} classes="" href="/album/{album?.id}" src={album?.images[1]?.url} alt="" title={album?.name} artist={album?.artists[0]?.name}/>
+                        {/each}
                     </div>
-                {/each}
-            </div>
+                {/if}
+                <div class="divider"></div>
+            {/if}
+            {#if artistSingles.length !== 0}
+                <div class="flex justify-between">
+                    <h2 class="text-4xl font-black mb-4">Singles & EPs</h2>
+                    {#if artistSingles.length > 5}
+                        <button class="hover:-translate-y-1 transition-all drop-shadow-xl" on:click={() => { showMoreSingles = !showMoreSingles; }}>view all</button>
+                    {/if}
+                </div>
+                <div class="singles grid grid-flow-row-dense grid-cols-5 gap-4">
+                    {#if artistSingles.length > 5}
+                        {#each artistSingles.slice(0, 5) as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    {:else}
+                        {#each artistSingles as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    {/if}
+                </div>
+                {#if showMoreSingles}
+                    <div transition:slide class="view-more-singles mt-4 grid grid-flow-rose-dense grid-cols-5 gap-4">
+                        {#each artistSingles.slice(5) as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    </div>
+                {/if}
+                <div class="divider"></div>
+            {/if}
+            {#if artistAppearances.length !== 0}
+                <div class="flex justify-between">
+                    <h2 class="text-4xl font-black mb-4">Guest appearances</h2>
+                    {#if artistAppearances.length > 5}
+                        <button class="hover:-translate-y-1 transition-all drop-shadow-xl" on:click={() => { showMoreAppearances = !showMoreAppearances; }}>view all</button>
+                    {/if}
+                </div>
+                <div class="singles grid grid-flow-row-dense grid-cols-5 gap-4">
+                    {#if artistAppearances.length > 5}
+                        {#each artistAppearances.slice(0, 5) as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    {:else}
+                        {#each artistAppearances as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    {/if}
+                </div>
+                {#if showMoreAppearances}
+                    <div transition:slide class="mt-4 view-more-appearances grid grid-flow-row-dense grid-cols-5 gap-4">
+                        {#each artistAppearances.slice(5) as single}
+                            <BigTrackThumbnail date={single?.release_date} classes="" href="/album/{single?.id}" src={single?.images[1]?.url} alt="" title={single?.name} artist={single?.artists[0]?.name}/>
+                        {/each}
+                    </div>
+                {/if}
+            {/if}
         </div>
     </div>
 </div>
