@@ -1,5 +1,7 @@
 const functions = require("firebase-functions");
+const { getStorage } = require("firebase-admin/storage");
 const admin = require("firebase-admin");
+const puppeteer = require("puppeteer");
 
 admin.initializeApp();
 
@@ -21,7 +23,31 @@ exports.genreIndexing = functions.firestore
         const genreId = context.params.genreId;
         const label = change.data();
         const searchableIndex = createIndex(label.name);
-        const indexedLabel = { ...label, searchableIndex };
+
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setUserAgent("puppeteer");
+        await page.goto(`https://radiowave.app/api/fetch-genre-image?name=${label.name}`);
+        await page.setViewport({
+            width: 400,
+            height: 400,
+            deviceScaleFactor: 2
+        });
+        
+        const screenshot = await page.screenshot();
+
+        const file = getStorage().bucket().file(`images/genre-${label.name.replaceAll(" ", "-")}`);
+        await file.save(screenshot, {
+            metadata: {
+                contentType: "image/jpeg"
+            }
+        });
+
+        const signedUrl = await file.getSignedUrl({ action: "read", expires: "01-01-2050"});
+        const indexedLabel = { ...label, photoURL: `${signedUrl[0]}`, searchableIndex };
+
+        await page.close();
+        await browser.close();
         return db.collection("genres").doc(genreId).set(indexedLabel, { merge: true });
     });
 
@@ -43,6 +69,26 @@ exports.writerIndexing = functions.firestore
         const searchableIndex = createIndex(label.name);
         const indexedLabel = { ...label, searchableIndex };
         return db.collection("writers").doc(writerId).set(indexedLabel, { merge: true });
+    });
+
+exports.artistIndexing = functions.firestore
+    .document("artists/{artistId}")
+    .onCreate(async (change, context) => {
+        const artistId = context.params.artistId;
+        const artist = change.data();
+        const searchableIndex = createIndex(artist.name);
+        const indexedLabel = { ...artist, searchableIndex };
+        return db.collection("artists").doc(artistId).set(indexedLabel, { merge: true });
+    });
+
+exports.userIndexing = functions.firestore
+    .document("users/{userId}")
+    .onCreate(async (change, context) => {
+        const userId = context.params.userId;
+        const user = change.data();
+        const searchableIndex = createIndex(user.displayName);
+        const indexedLabel = { ...user, searchableIndex };
+        return db.collection("users").doc(userId).set(indexedLabel, { merge: true });
     });
 
 function createIndex(title) {
@@ -168,43 +214,3 @@ exports.aggregateAlbumRatings = functions.firestore
             console.log(e);
         }
     });
-
-exports.deleteStatistics = functions.pubsub.schedule("59 23 * * *")
-    .timeZone("America/New_York")
-    .onRun((context) => {
-        const statisticsRef = db.collection("statistics");
-        deleteCollection(db, statisticsRef, 10);
-    });
-
-async function deleteCollection(db, collectionPath, batchSize) {
-    const collectionRef = db.collection(collectionPath);
-    const query = collectionRef.orderBy('__name__').limit(batchSize);
-
-    return new Promise((resolve, reject) => {
-        deleteQueryBatch(db, query, resolve).catch(reject);
-    });
-    }
-
-async function deleteQueryBatch(db, query, resolve) {
-    const snapshot = await query.get();
-
-    const batchSize = snapshot.size;
-    if (batchSize === 0) {
-        // When there are no documents left, we are done
-        resolve();
-        return;
-    }
-
-    // Delete documents in a batch
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    // Recurse on the next process tick, to avoid
-    // exploding the stack.
-    process.nextTick(() => {
-        deleteQueryBatch(db, query, resolve);
-    });
-}      

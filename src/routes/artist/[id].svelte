@@ -95,6 +95,8 @@
                     external_urls: res.data.external_urls.spotify,
                     genre: [],
                     genreNames: [],
+                    avgRating: 0,
+                    numRatings: 0,
                 };
 
                 await setDoc(doc(db, `artists/${$page.params.id}`), artistData);

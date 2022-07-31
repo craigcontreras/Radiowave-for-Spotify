@@ -20,6 +20,7 @@ export async function handle({event, resolve}) {
 
 export async function getSession(event) {
     return {
+        userAgent: event.request.headers["user-agent"],
         access_firebase: event.locals.access_firebase
     }
 }

@@ -10,7 +10,7 @@
     //try to decrypt the firebase token that was passed on from the server when logging in
     const res = axios({
         method: "post",
-        url: "http://localhost:3000/api/v1/firebase",
+        url: "https://radiowave.app/api/v1/firebase",
         headers: {},
         data: {
             access_firebase: $session.access_firebase,

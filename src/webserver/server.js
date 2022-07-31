@@ -1,4 +1,3 @@
-import { handler } from "../../build/handler.js";
 import encryption from "./encryption.js";
 import cookieParser from "cookie-parser";
 import express from "express";
@@ -10,8 +9,9 @@ import base64url from "base64url";
 import querystring from "querystring";
 import axios from "axios";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { db } from "./firebase.js";
 import * as cron from "node-cron";
+import { handler } from "./build/handler.js";
 
 //initialize express server
 const app = express();
@@ -19,7 +19,7 @@ const app = express();
 //spotify credentials
 const id = "4d5e942d117f4de793c86a1c53c3d393";
 const secret = "1e694b8c1aae43efa11b0df5330dfd72";
-const redirect = "http://localhost:3000/callback";
+const redirect = "https://radiowave.app/callback";
 
 //middleware
 app.use(cookieParser()); //parses all cookies incoming from requests
@@ -96,7 +96,7 @@ app.get("/callback", (req, res) => {
 
         params.append("grant_type", "authorization_code");
         params.append("code", req.query.code.toString());
-        params.append("redirect_uri", "http://localhost:3000/callback");
+        params.append("redirect_uri", "https://radiowave.app/callback");
         params.append("client_id", id);
         params.append("code_verifier", decryptedVerifier);
 

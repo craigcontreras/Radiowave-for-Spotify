@@ -11,8 +11,12 @@
     export let url;
 </script>
 
+{#if !url.toString().includes("/api")}
 <Navbar/>
+{/if}
 <PageTransition {url}>
     <slot />
 </PageTransition>
+{#if !url.toString().includes("/api")}
 <Footer/>
+{/if}

@@ -667,7 +667,9 @@
 </div>
 
 <div style="--theme-color:{primaryColor}" bind:this={detailElement} class:-z-50={hide} class="header flex sticky top-[-1px] justify-start">
-    <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-theme-color opacity-50"></div>
+    <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-black opacity-50">
+        <div class:bg-gradient-to-b={!hide} class="relative h-full from-base-100 via-base-100 to-theme-color blur-2xl"></div>
+    </div>
     <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full content">
         <div class="text my-8 basis-3/5">

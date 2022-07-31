@@ -12,6 +12,9 @@
             <li><a href="">Albums</a></li>
             <li><a href="">Tracks</a></li>
             <li><a href="">Artists</a></li>
+            <li><a href="">Writers</a></li>
+            <li><a href="">Producers</a></li>
+            <li><a href="">Genres</a></li>
         </ul>
     </div>
 </nav>
