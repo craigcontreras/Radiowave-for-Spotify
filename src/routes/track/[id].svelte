@@ -123,8 +123,18 @@
 
     let showGraph = false;
 
+    let primaryColor = "";
+
     onMount(async () => {
         const { chart } = await import("svelte-apexcharts");
+        const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
+
+        thumbnailElement.addEventListener("load", () => {
+            Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
+                primaryColor = palette.DarkVibrant.getHex();
+            });
+        });
+
         chartMethod = chart;
         chartLoaded = true;
 
@@ -415,10 +425,11 @@
                     forceNiceScale: true,
                 },
                 xaxis: {
-                    tooltip: {
-                        enabled: false,
-                    },
+                    categories: dates,
                     axisTicks: {
+                        show: false,
+                    },
+                    labels: {
                         show: false,
                     }
                 },
@@ -453,9 +464,6 @@
                         data: views,
                     }
                 ],
-                xaxis: {
-                    categories: dates
-                }
             };
         } else {
             if (browser) {
@@ -845,12 +853,9 @@
     </ul>
 </div>
 
-<div bind:this={detailElement} class:-z-50={hide} class="flex sticky top-[-1px] justify-start">
-    <img on:load={() => {
-        // const colorThief = new ColorThief();
-        // const color = colorThief.getColor(thumbnailElement, 10);
-        // console.log(color);
-    }} bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
+<div style="--theme-color:{primaryColor}" bind:this={detailElement} class:-z-50={hide} class="flex sticky top-[-1px] justify-start">
+    <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-theme-color opacity-50"></div>
+    <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
         <div class="my-8 basis-3/5">
             <h1 class="max-w-[90%] text-6xl break-words font-black">{trackData?.name}</h1> 
@@ -863,7 +868,7 @@
                 {/if}
             </h3>
     
-            <div class="w-16 mt-4">
+            <div class="w-16 mt-4 drop-shadow-xl">
                 <Rating bind:ratingColor={ratingColor} avgRating={trackData?.avgRating}/>
             </div>
             {#if trackData?.numRatings === 1}
@@ -871,13 +876,13 @@
             {:else}
                 <p class="my-1 mb-6 italic">based on {trackData?.numRatings} ratings</p>
             {/if}
-            <a class="text-lg rounded-lg drop-shadow-xl transition-all hover:-translate-y-8 px-4 py-2 bg-slate-700" href={trackData?.album?.external_urls}><Icon data={faPlayCircle} class="mr-2"/>Listen to {trackData?.album?.name} on Spotify</a>
+            <a class="text-lg rounded-lg drop-shadow-xl transition-all hover:-translate-y-8 px-4 py-2 bg-black" href={trackData?.album?.external_urls}><Icon data={faPlayCircle} class="mr-2"/>Listen to {trackData?.album?.name} on Spotify</a>
         </div>
         <div class="my-8 mr-6 float-right basis-2/5">
-            <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="detail-box">
+            <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black" id="detail-box">
                 <h2 class="italic inline text-gray-400">TRACK DETAILS</h2>
                 <button class="float-right inline" on:click={enterChangeMode}>Change</button>
-                <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
+                <div id="divider" class="w-full bg-stone-900 h-0.5"></div>
                 <p><span class="italic text-gray-400 pr-1">date</span> {releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
                 <p><span class="italic text-gray-400 pr-1">track no.</span> {trackData?.track_number}/{trackData?.album?.total_tracks}</p>
                 <p><span class="italic text-gray-400 pr-1">length</span> {duration}</p>
@@ -891,9 +896,9 @@
                 }}>
                     <p class="italic text-gray-400">label 
                         {#if publicLabels.length > 3}
-                            <a href="/{publicLabels[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[0].text}</a>
-                            <a href="/{publicLabels[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[1].text}</a>
-                            <a href="/{publicLabels[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[2].text}</a>
+                            <a href="/{publicLabels[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[0].text}</a>
+                            <a href="/{publicLabels[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[1].text}</a>
+                            <a href="/{publicLabels[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[2].text}</a>
                             <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
                                 if (hideModalLabels) {
                                     hideModalLabels = false;
@@ -903,11 +908,11 @@
                             }}>view all</button>    
                         {:else}
                             {#each publicLabels as label}
-                                <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
+                                <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
                             {/each}
                         {/if}
                         {#each proposedLabels as label}
-                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
                                 <a class="text-center" href="/{label.id}">{label.text} </a>
                                 <button type="button" on:click|stopPropagation|preventDefault={() => {
                                     remove(proposedLabels, {
@@ -918,16 +923,16 @@
                                     });
                                     proposedLabels = proposedLabels;
                                     labelsForQuerying = newArr;
-                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                                }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
                             </span>
                         {/each}
                         <InputWithTypeahead collectionType="labels" on:handleTypeaheadCreation={handleTypeaheadCreationForLabels} bind:hideTypeaheadCreate={hideTypeaheadCreateForLabels} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForLabels} bind:currentLabelText={currentLabelText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForLabels} bind:autocompleteResults={autocompleteResultsForLabels}/>
                     </p>
                     <p class="italic text-gray-400">genres 
                         {#if publicGenre.length > 3}
-                            <a href="/{publicGenre[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[0].text}</a>
-                            <a href="/{publicGenre[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[1].text}</a>
-                            <a href="/{publicGenre[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[2].text}</a>
+                            <a href="/{publicGenre[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[0].text}</a>
+                            <a href="/{publicGenre[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[1].text}</a>
+                            <a href="/{publicGenre[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenre[2].text}</a>
                             <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
                                 if (hideModalGenres) {
                                     hideModalGenres = false;
@@ -937,11 +942,11 @@
                             }}>view all</button>    
                         {:else}
                             {#each publicGenre as genre}
-                                <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
+                                <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
                             {/each}
                         {/if}
                         {#each proposedGenre as genre}
-                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
                                 <a class="text-center" href="/{genre.id}">{genre.text} </a>
                                 <button type="button" on:click|stopPropagation|preventDefault={() => {
                                     remove(proposedGenre, {
@@ -952,16 +957,16 @@
                                     });
                                     proposedGenre = proposedGenre;
                                     genresForRecommendations = newArr;
-                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                                }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
                             </span>
                         {/each}
                         <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>
                     </p>
                     <p class="italic text-gray-400">producers 
                         {#if publicProducers.length > 3}
-                            <a href="/{publicProducers[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[0].text}</a>
-                            <a href="/{publicProducers[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[1].text}</a>
-                            <a href="/{publicProducers[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[2].text}</a>
+                            <a href="/{publicProducers[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[0].text}</a>
+                            <a href="/{publicProducers[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[1].text}</a>
+                            <a href="/{publicProducers[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[2].text}</a>
                             <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
                                 if (hideModalProducers) {
                                     hideModalProducers = false;
@@ -971,11 +976,11 @@
                             }}>view all</button>    
                         {:else}
                             {#each publicProducers as producer}
-                                <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
+                                <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
                             {/each}
                         {/if}
                         {#each proposedProducers as producer}
-                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
                                 <a class="text-center" href="/{producer.id}">{producer.text} </a>
                                 <button type="button" on:click|stopPropagation|preventDefault={() => {
                                     remove(proposedProducers, {
@@ -986,16 +991,16 @@
                                     });
                                     producersForQuerying = newArr;
                                     proposedProducers = proposedProducers;
-                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                                }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
                             </span>
                         {/each}
                         <InputWithTypeahead collectionType="producers" on:handleTypeaheadCreation={handleTypeaheadCreationForProducers} bind:hideTypeaheadCreate={hideTypeaheadCreateForProducers} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForProducers} bind:currentLabelText={currentProducerText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForProducers} bind:autocompleteResults={autocompleteResultsForProducers}/>
                     </p>                    
                     <p class="italic text-gray-400">writers 
                         {#if publicWriters.length > 3}
-                            <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
-                            <a href="/{publicWriters[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[1].text}</a>
-                            <a href="/{publicWriters[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[2].text}</a>
+                            <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
+                            <a href="/{publicWriters[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[1].text}</a>
+                            <a href="/{publicWriters[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[2].text}</a>
                             <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
                                 if (hideModalWriters) {
                                     hideModalWriters = false;
@@ -1005,11 +1010,11 @@
                             }}>view all</button>    
                         {:else}
                             {#each publicWriters as writer}
-                                <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
+                                <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
                             {/each}
                         {/if}
                         {#each proposedWriters as writer}
-                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
+                            <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
                                 <a class="text-center" href="/{writer.id}">{writer.text} </a>
                                 <button type="button" on:click|stopPropagation|preventDefault={() => {
                                     remove(proposedWriters, {
@@ -1020,7 +1025,7 @@
                                     });
                                     writersForQuerying = newArr;
                                     proposedWriters = proposedWriters;
-                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                                }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
                             </span>
                         {/each}
                         <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
@@ -1029,7 +1034,7 @@
                 </form>
             </div>
             {#if chartLoaded}
-            <div transition:slide class="graph mt-6 flex flex-col justify-end items-end">
+            <div transition:slide class="hover:-translate-y-1 transition-all pt-4 px-4 bg-black rounded-lg drop-shadow-xl graph mt-6 flex flex-col justify-end items-end">
                 <p class="font-bold text-right max-w-[90%]">Popularity of {trackData?.name} in the past week</p>
                 <div class="" use:chartMethod={options}></div>
             </div>
@@ -1038,7 +1043,7 @@
     </div>
 </div>
 
-<div class="mx-6 divider"></div>
+<div class="mt-0 divider items-start"></div>
 
 {#if userActivity.length !== 0}
     <div class="mx-6">
@@ -1173,4 +1178,17 @@
         mask-image: linear-gradient(transparent, black 20%, black 80%, transparent 100%);
         -webkit-mask-image: linear-gradient( to right,transparent, black 20%, black 80%, transparent 100%);
     }
+/* 
+    .fade-in-top-bottom {
+        mask-image: linear-gradient(
+            transparent,
+            black 20%,
+            black 80%,
+            transparent 100%);
+        -webkit-mask-image: linear-gradient(
+            transparent,
+            black 20%,
+            black 80%,
+            transparent 100%);
+    } */
 </style>

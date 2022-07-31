@@ -4,7 +4,11 @@ module.exports = {
     "./src/**/*.{svelte,html,js}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        "theme-color": "var(--theme-color)",
+      }
+    },
   },
   plugins: [require("daisyui")],
   daisyui: {

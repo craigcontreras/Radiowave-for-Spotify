@@ -71,6 +71,9 @@
     let dates = [];
     let views = [];
 
+    let thumbnailElement;
+    let primaryColor = "";
+
     let options = {
         chart: {
             type: "line",
@@ -108,6 +111,13 @@
         const { chart } = await import("svelte-apexcharts");
         chartMethod = chart;
         chartLoaded = true;
+
+        const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
+        thumbnailElement.addEventListener("load", () => {
+            Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
+                primaryColor = palette.DarkVibrant.getHex();
+            });
+        });
 
         if (browser) {
             const observer = new IntersectionObserver(entries => {
@@ -343,12 +353,13 @@
                     forceNiceScale: true,
                 },
                 xaxis: {
-                    tooltip: {
-                        enabled: false,
-                    },
                     axisTicks: {
                         show: false,
-                    }
+                    },
+                    labels: {
+                        show: false,
+                    },
+                    categories: dates,
                 },
                 stroke: {
                     show: true,
@@ -381,9 +392,6 @@
                         data: views,
                     }
                 ],
-                xaxis: {
-                    categories: dates
-                }
             };
         } else {
             if (browser) {
@@ -658,185 +666,182 @@
     </ul>
 </div>
 
-<div class="mx-6 content">
-    <div bind:this={detailElement} class:-z-50={hide} class="header flex sticky top-[-1px] justify-start">
-        <img on:load={() => {
-            // const colorThief = new ColorThief();
-            // const color = colorThief.getColor(thumbnailElement, 10);
-            // console.log(color);
-        }} class:opacity-20={hide} class:scale-50={hide} class="max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl my-6 mr-6" src={albumData?.images[1]?.url} alt="Album cover"/>
-        <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full content">
-            <div class="text my-8 basis-3/5">
-                <h1 class="text-6xl font-black max-w-[90%]">{albumData?.name}</h1>
-                <h2 class:mb-6={albumData?.isSingle} class="text-4xl font-bold max-w-[90%]">by <a class="hover:underline" href="/artist/{albumData?.artists[0]?.id}">{albumData?.artists[0]?.name}</a></h2>
+<div style="--theme-color:{primaryColor}" bind:this={detailElement} class:-z-50={hide} class="header flex sticky top-[-1px] justify-start">
+    <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-theme-color opacity-50"></div>
+    <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
+    <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full content">
+        <div class="text my-8 basis-3/5">
+            <h1 class="text-6xl font-black max-w-[90%]">{albumData?.name}</h1>
+            <h2 class:mb-6={albumData?.isSingle} class="text-4xl font-bold max-w-[90%]">by <a class="hover:underline" href="/artist/{albumData?.artists[0]?.id}">{albumData?.artists[0]?.name}</a></h2>
 
-                {#if !albumData?.isSingle}
-                    <div class="w-16 mt-4">
-                        <Rating bind:ratingColor={ratingColor} avgRating={albumData?.avgRating}/>
-                    </div>
-
-                    {#if albumData?.numRatings === 1}
-                        <p class="my-1 mb-6 italic">based on {albumData?.numRatings} rating</p>
-                    {:else}
-                        <p class="my-1 mb-6 italic">based on {albumData?.numRatings} ratings</p>
-                    {/if}
-                {/if}
-
-                <a class="text-lg rounded-lg drop-shadow-all hover:-translate-y-1 hover-all px-4 py-2 bg-slate-700" href={albumData?.external_urls}><Icon class="mr-2" data={faPlayCircle}/>Listen to {albumData?.name} on Spotify</a>
-            </div>
             {#if !albumData?.isSingle}
-                <div class:hidden={albumData?.isSingle} class="details my-8 mr-6 float-right basis-2/5">
-                    <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800 detail-box">
-                        <h2 class="italic inline text-gray-400">TRACK DETAILS</h2>
-                        <button class="float-right inline" on:click={enterChangeMode}>Change</button>
-                        <div class="w-full bg-gray-700 h-0.5"></div>
-                        <p><span class="italic text-gray-400 pr-1">date</span> {releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
-                        <form action="" on:submit|preventDefault={async () => {
-                            await submitProposedDetails();
-                            enterChangeMode();
-
-                            if (browser) {
-                                location.reload();
-                            }
-                        }}>
-                            <p class="italic text-gray-400">label
-                                {#if publicLabels.length > 3}
-                                    <a href="/{publicLabels[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[0].text}</a>
-                                    <a href="/{publicLabels[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[1].text}</a>
-                                    <a href="/{publicLabels[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[2].text}</a>
-                                    <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
-                                        hideModalLabels = !hideModalLabels;
-                                    }}>view all</button>
-                                {:else}
-                                    {#each publicLabels as label}
-                                        <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
-                                    {/each}
-                                {/if}
-
-                                {#each proposedLabels as label}
-                                    <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
-                                        <a href="/{label.id}" class="text-center">{label.text} </a>
-                                        <button type="button" on:click|stopPropagation|preventDefault={() => {
-                                            remove(proposedLabels, {
-                                                text: label.text,
-                                            });
-                                            const newArr = labelsForQuerying.filter(item => {
-                                                return item !== label.text;
-                                            });
-                                            proposedLabels = proposedLabels;
-                                            labelsForQuerying = newArr;
-                                        }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
-                                    </span>
-                                {/each}
-                                <InputWithTypeahead collectionType="labels" on:handleTypeaheadCreation={handleTypeaheadCreationForLabels} bind:hideTypeaheadCreate={hideTypeaheadCreateForLabels} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForLabels} bind:currentLabelText={currentLabelText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForLabels} bind:autocompleteResults={autocompleteResultsForLabels}/>
-                            </p>
-                            <p class="italic text-gray-400">genre
-                                {#if publicGenres.length > 3}
-                                    <a href="/{publicGenres[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[0].text}</a>
-                                    <a href="/{publicGenres[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[1].text}</a>
-                                    <a href="/{publicGenres[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[2].text}</a>
-                                    <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
-                                        hideModalGenres = !hideModalGenres;
-                                    }}>view all</button>
-                                {:else}
-                                    {#each publicGenres as genre}
-                                        <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
-                                    {/each}
-                                {/if}
-
-                                {#each proposedGenres as genre}
-                                    <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
-                                        <a href="/{genre.id}" class="text-center">{genre.text} </a>
-                                        <button type="button" on:click|stopPropagation|preventDefault={() => {
-                                            remove(proposedGenres, {
-                                                text: genre.text,
-                                            });
-                                            const newArr = genresForQuerying.filter(item => {
-                                                return item !== genre.text;
-                                            });
-                                            proposedGenres = proposedGenres;
-                                            genresForQuerying = newArr;
-                                        }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
-                                    </span>
-                                {/each}
-                                <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>
-                            </p>
-                            <p class="italic text-gray-400">producers
-                                {#if publicProducers.length > 3}
-                                    <a href="/{publicProducers[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[0].text}</a>
-                                    <a href="/{publicProducers[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[1].text}</a>
-                                    <a href="/{publicProducers[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[2].text}</a>
-                                    <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
-                                        hideModalProducers = !hideModalProducers;
-                                    }}>view all</button>
-                                {:else}
-                                    {#each publicProducers as producer}
-                                        <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
-                                    {/each}
-                                {/if}
-
-                                {#each proposedProducers as producer}
-                                    <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
-                                        <a href="/{producer.id}" class="text-center">{producer.text} </a>
-                                        <button type="button" on:click|stopPropagation|preventDefault={() => {
-                                            remove(proposedProducers, {
-                                                text: producer.text,
-                                            });
-                                            const newArr = producersForQuerying.filter(item => {
-                                                return item !== producer.text;
-                                            });
-                                            proposedProducers = proposedProducers;
-                                            producersForQuerying = newArr;
-                                        }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
-                                    </span>
-                                {/each}
-                                <InputWithTypeahead collectionType="producers" on:handleTypeaheadCreation={handleTypeaheadCreationForProducers} bind:hideTypeaheadCreate={hideTypeaheadCreateForProducers} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForProducers} bind:currentLabelText={currentProducerText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForProducers} bind:autocompleteResults={autocompleteResultsForProducers}/>
-                            </p>
-                            <p class="italic text-gray-400">writers
-                                {#if publicWriters.length > 3}
-                                    <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
-                                    <a href="/{publicWriters[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[1].text}</a>
-                                    <a href="/{publicWriters[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[2].text}</a>
-                                    <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
-                                        hideModalWriters = !hideModalWriters;
-                                    }}>view all</button>
-                                {:else}
-                                    {#each publicWriters as writer}
-                                        <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
-                                    {/each}
-                                {/if}
-
-                                {#each proposedWriters as writer}
-                                    <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-slate-700 rounded-lg">
-                                        <a href="/{writer.id}" class="text-center">{writer.text} </a>
-                                        <button type="button" on:click|stopPropagation|preventDefault={() => {
-                                            remove(proposedWriters, {
-                                                text: writer.text,
-                                            });
-                                            const newArr = writersForQuerying.filter(item => {
-                                                return item !== writer.text;
-                                            });
-                                            proposedWriters = proposedWriters;
-                                            writersForQuerying = newArr;
-                                        }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
-                                    </span>
-                                {/each}
-                                <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
-                            </p>
-                            <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
-                        </form>
-                    </div>
-                    {#if chartLoaded}
-                        <div class="graph mt-6 flex flex-col justify-end items-end">
-                            <p class="font-bold text-right max-w-[90%]">Popularity of {albumData?.name} in the past week</p>
-                            <div class="" use:chartMethod={options}></div>
-                        </div>
-                    {/if}    
+                <div class="w-16 mt-4 drop-shadow-xl">
+                    <Rating bind:ratingColor={ratingColor} avgRating={albumData?.avgRating}/>
                 </div>
+
+                {#if albumData?.numRatings === 1}
+                    <p class="my-1 mb-6 italic">based on {albumData?.numRatings} rating</p>
+                {:else}
+                    <p class="my-1 mb-6 italic">based on {albumData?.numRatings} ratings</p>
+                {/if}
             {/if}
+
+            <a class="text-lg rounded-lg drop-shadow-all hover:-translate-y-1 hover-all px-4 py-2 bg-stone-900" href={albumData?.external_urls}><Icon class="mr-2" data={faPlayCircle}/>Listen to {albumData?.name} on Spotify</a>
         </div>
+        {#if !albumData?.isSingle}
+            <div class:hidden={albumData?.isSingle} class="details my-8 mr-6 float-right basis-2/5">
+                <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black detail-box">
+                    <h2 class="italic inline text-gray-400">TRACK DETAILS</h2>
+                    <button class="float-right inline" on:click={enterChangeMode}>Change</button>
+                    <div class="w-full bg-gray-700 h-0.5"></div>
+                    <p><span class="italic text-gray-400 pr-1">date</span> {releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
+                    <form action="" on:submit|preventDefault={async () => {
+                        await submitProposedDetails();
+                        enterChangeMode();
+
+                        if (browser) {
+                            location.reload();
+                        }
+                    }}>
+                        <p class="italic text-gray-400">label
+                            {#if publicLabels.length > 3}
+                                <a href="/{publicLabels[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[0].text}</a>
+                                <a href="/{publicLabels[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[1].text}</a>
+                                <a href="/{publicLabels[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicLabels[2].text}</a>
+                                <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                    hideModalLabels = !hideModalLabels;
+                                }}>view all</button>
+                            {:else}
+                                {#each publicLabels as label}
+                                    <a href="/{label.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{label.text}</a>
+                                {/each}
+                            {/if}
+
+                            {#each proposedLabels as label}
+                                <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
+                                    <a href="/{label.id}" class="text-center">{label.text} </a>
+                                    <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                        remove(proposedLabels, {
+                                            text: label.text,
+                                        });
+                                        const newArr = labelsForQuerying.filter(item => {
+                                            return item !== label.text;
+                                        });
+                                        proposedLabels = proposedLabels;
+                                        labelsForQuerying = newArr;
+                                    }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
+                                </span>
+                            {/each}
+                            <InputWithTypeahead collectionType="labels" on:handleTypeaheadCreation={handleTypeaheadCreationForLabels} bind:hideTypeaheadCreate={hideTypeaheadCreateForLabels} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForLabels} bind:currentLabelText={currentLabelText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForLabels} bind:autocompleteResults={autocompleteResultsForLabels}/>
+                        </p>
+                        <p class="italic text-gray-400">genre
+                            {#if publicGenres.length > 3}
+                                <a href="/{publicGenres[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[0].text}</a>
+                                <a href="/{publicGenres[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[1].text}</a>
+                                <a href="/{publicGenres[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicGenres[2].text}</a>
+                                <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                    hideModalGenres = !hideModalGenres;
+                                }}>view all</button>
+                            {:else}
+                                {#each publicGenres as genre}
+                                    <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{genre.text}</a>
+                                {/each}
+                            {/if}
+
+                            {#each proposedGenres as genre}
+                                <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
+                                    <a href="/{genre.id}" class="text-center">{genre.text} </a>
+                                    <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                        remove(proposedGenres, {
+                                            text: genre.text,
+                                        });
+                                        const newArr = genresForQuerying.filter(item => {
+                                            return item !== genre.text;
+                                        });
+                                        proposedGenres = proposedGenres;
+                                        genresForQuerying = newArr;
+                                    }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
+                                </span>
+                            {/each}
+                            <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>
+                        </p>
+                        <p class="italic text-gray-400">producers
+                            {#if publicProducers.length > 3}
+                                <a href="/{publicProducers[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[0].text}</a>
+                                <a href="/{publicProducers[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[1].text}</a>
+                                <a href="/{publicProducers[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicProducers[2].text}</a>
+                                <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                    hideModalProducers = !hideModalProducers;
+                                }}>view all</button>
+                            {:else}
+                                {#each publicProducers as producer}
+                                    <a href="/{producer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{producer.text}</a>
+                                {/each}
+                            {/if}
+
+                            {#each proposedProducers as producer}
+                                <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
+                                    <a href="/{producer.id}" class="text-center">{producer.text} </a>
+                                    <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                        remove(proposedProducers, {
+                                            text: producer.text,
+                                        });
+                                        const newArr = producersForQuerying.filter(item => {
+                                            return item !== producer.text;
+                                        });
+                                        proposedProducers = proposedProducers;
+                                        producersForQuerying = newArr;
+                                    }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
+                                </span>
+                            {/each}
+                            <InputWithTypeahead collectionType="producers" on:handleTypeaheadCreation={handleTypeaheadCreationForProducers} bind:hideTypeaheadCreate={hideTypeaheadCreateForProducers} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForProducers} bind:currentLabelText={currentProducerText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForProducers} bind:autocompleteResults={autocompleteResultsForProducers}/>
+                        </p>
+                        <p class="italic text-gray-400">writers
+                            {#if publicWriters.length > 3}
+                                <a href="/{publicWriters[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[0].text}</a>
+                                <a href="/{publicWriters[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[1].text}</a>
+                                <a href="/{publicWriters[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{publicWriters[2].text}</a>
+                                <button type="button" class="italic" class:hidden={inChangeMode} on:click|preventDefault={() => {
+                                    hideModalWriters = !hideModalWriters;
+                                }}>view all</button>
+                            {:else}
+                                {#each publicWriters as writer}
+                                    <a href="/{writer.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={inChangeMode}>{writer.text}</a>
+                                {/each}
+                            {/if}
+
+                            {#each proposedWriters as writer}
+                                <span class:hidden={!inChangeMode} class="not-italic text-white p-1 mr-1 bg-stone-900 rounded-lg">
+                                    <a href="/{writer.id}" class="text-center">{writer.text} </a>
+                                    <button type="button" on:click|stopPropagation|preventDefault={() => {
+                                        remove(proposedWriters, {
+                                            text: writer.text,
+                                        });
+                                        const newArr = writersForQuerying.filter(item => {
+                                            return item !== writer.text;
+                                        });
+                                        proposedWriters = proposedWriters;
+                                        writersForQuerying = newArr;
+                                    }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
+                                </span>
+                            {/each}
+                            <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
+                        </p>
+                        <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
+                    </form>
+                </div>
+                {#if chartLoaded}
+                    <div class="hover:-translate-y-1 transition-all pt-4 px-4 bg-black rounded-lg drop-shadow-xl graph mt-6 flex flex-col justify-end items-end">
+                        <p class="font-bold text-right max-w-[90%]">Popularity of {albumData?.name} in the past week</p>
+                        <div class="" use:chartMethod={options}></div>
+                    </div>
+                {/if}    
+            </div>
+        {/if}
     </div>
-    <div class="divider"></div>
+</div>
+<div class="divider mt-0 items-start"></div>
+<div class="mx-6 content">
     <div class="tracks">
         <h2 class="text-4xl font-black mb-4">Tracks</h2>
         {#each tracks as track}
@@ -893,5 +898,4 @@
 </div>
 
 <style>
-
 </style>
