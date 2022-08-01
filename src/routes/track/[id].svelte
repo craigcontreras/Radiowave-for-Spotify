@@ -6,7 +6,7 @@
     import TrackReview from "../../components/TrackReview.svelte";
     import find from "lodash/find.js";
     import remove from "lodash/remove.js";
-    import { page } from "$app/stores";
+    import { page, session } from "$app/stores";
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
@@ -18,6 +18,7 @@
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
     import Comments from '../../components/Comments.svelte';
     import { slide } from "svelte/transition";
+    import { get } from 'svelte/store';
 
     let userLoaded = false;
     let inChangeMode = false;
@@ -125,6 +126,8 @@
 
     let primaryColor = "";
 
+    const {userAgent} = get(session);
+
     onMount(async () => {
         const { chart } = await import("svelte-apexcharts");
         const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
@@ -138,7 +141,6 @@
         chartMethod = chart;
         chartLoaded = true;
 
-        loginToFirebase();
         //for the detail element changing position
         if (browser) {
             const observer = new IntersectionObserver(entries => {
@@ -155,322 +157,6 @@
             observer.observe(detailElement);
         }
     });
-
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-    
-    async function initialLoad(userAccessToken, userRefreshToken) {
-        if (refreshed > 1) {
-            goto("/error");
-            return;
-        }
-
-        const trackPage = axios.get(`https://api.spotify.com/v1/tracks/${$page.params.id}`, {
-            headers: {
-                Authorization: `Bearer ${userAccessToken}`
-            }
-        });
-        const trackFeatures = axios.get(`https://api.spotify.com/v1/audio-features/${$page.params.id}`, {
-            headers: {
-                Authorization: `Bearer ${userAccessToken}`
-            }
-        });
-        axios.all([trackPage, trackFeatures]).then(axios.spread(async (...res) => {
-            const trackPageData = res[0];
-            const trackFeaturesData = res[1];
-            const date = new Date(trackPageData.data.album.release_date);
-            const spotifyData = {
-                album: {
-                    album_type: trackPageData.data.album.album_type,
-                    images: trackPageData.data.album.images,
-                    name: trackPageData.data.album.name,
-                    artists: trackPageData.data.album.artists,
-                    release_date: date,
-                    id: trackPageData.data.album.id,
-                    external_urls: trackPageData.data.album.external_urls.spotify,
-                    total_tracks: trackPageData.data.album.total_tracks,
-                },
-                analysis: {
-                    tempo: trackFeaturesData.data.tempo,
-                    time_signature: trackFeaturesData.data.time_signature,
-                    key: trackFeaturesData.data.key,
-                },
-                features: {
-                    loudness: trackFeaturesData.data.loudness,
-                    acousticness: trackFeaturesData.data.acousticness,
-                    danceability: trackFeaturesData.data.danceability,
-                    energy: trackFeaturesData.data.energy,
-                    valence: trackFeaturesData.data.valence,
-                },
-                duration_ms: trackPageData.data.duration_ms,
-                name: trackPageData.data.name,
-                track_number: trackPageData.data.track_number,
-                avgRating: 0,
-                numRatings: 0,
-                primary_artist: trackPageData.data.album.artists[0].name,
-                label: [],
-                producers: [],
-                writers: [],
-                genre: [],
-                labelNames: [],
-                genreNames: [],
-                producerNames: [],
-                writerNames: [],
-                year: date.getFullYear() || 0,
-                month: date.getMonth() || 0,
-                day: date.getDate() || 0,
-            };
-
-            await setDoc(doc(db, `tracks/${$page.params.id}`), spotifyData);
-            trackData = spotifyData;
-            matchKey();
-            matchDanceability();
-            matchEnergy();
-            matchValence();
-            duration = millisToMinutesAndSeconds(trackData?.duration_ms);
-            publicLabels = trackData?.label;
-            publicGenre = trackData?.genre;
-            publicProducers = trackData?.producers;
-            publicWriters = trackData?.writers;
-            genresForRecommendations = trackData?.genreNames;
-            releaseDate = new Date(trackData?.album?.release_date);
-
-            const tracksByArtistRef = collection(db, `tracks`);
-            const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
-            const tracksByArtist = await getDocs(tracksByArtistQuery);
-            tracksByArtist.forEach(doc => {
-                moreTracksByArtist.push({
-                    name: doc.data().name,
-                    artists: doc.data().album.artists,
-                    image: doc.data().album.images[1].url,
-                    id: doc.id,
-                });
-                moreTracksByArtist = moreTracksByArtist;
-            });
-            findRecommendations();
-            findUserActivity();
-        })).catch(err => {
-            if (err?.response?.status === 400) {
-                if (browser) {
-                    goto("/error");
-                }
-                return;
-            }
-            if (refreshed < 1) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", userRefreshToken);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then(async (spotifyData) => {
-                    const newAccess = spotifyData.data.access_token;
-                    const newRefresh = spotifyData.data.refresh_token;
-                    await setDoc(doc(db, `users/${userId}`), {
-                        access: newAccess,
-                        refresh: newRefresh
-                    }, {
-                        merge: true
-                    });
-                    refreshed++;
-                    initialLoad(newAccess, newRefresh);
-                }).catch(err => {
-                    refreshed++;
-                });
-            } else {
-                if (browser) {
-                    goto("/error");
-                }
-            }
-        });
-    }
-
-    async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            userId = user.uid;
-            const userDoc = await getDoc(doc(db, `users/${user.uid}`));
-            const userAccessToken = userDoc.data().access;
-            const userRefreshToken = userDoc.data().refresh;
-            const trackDoc = await getDoc(doc(db, `tracks/${$page.params.id}`));
-
-            if (!trackDoc.exists()) {
-                initialLoad(userAccessToken, userRefreshToken);
-            } else {
-                trackData = trackDoc.data();
-                matchKey();
-                matchDanceability();
-                matchEnergy();
-                matchValence();
-                duration = millisToMinutesAndSeconds(trackData?.duration_ms);
-                publicLabels = trackData?.label;
-                publicGenre = trackData?.genre;
-                publicWriters = trackData?.writers;
-                publicProducers = trackData?.producers;
-                genresForRecommendations = trackData?.genreNames;
-                labelsForQuerying = trackData?.labelNames;
-                writersForQuerying = trackData?.writerNames;
-                producersForQuerying = trackData?.producerNames;
-                releaseDate = trackData?.album?.release_date.toDate();
-
-                const tracksByArtistRef = collection(db, `tracks`);
-                const tracksByArtistQuery = query(tracksByArtistRef, where("primary_artist", "==", trackData?.album?.artists[0]?.name), where("name", "!=", trackData?.name), limit(20));
-                const tracksByArtist = await getDocs(tracksByArtistQuery);
-                tracksByArtist.forEach(doc => {
-                    moreTracksByArtist.push({
-                        name: doc.data().name,
-                        artists: doc.data().album.artists,
-                        image: doc.data().album.images[1].url,
-                        id: doc.id,
-                    });
-                    moreTracksByArtist = moreTracksByArtist;
-                });
-                findRecommendations();
-                findUserActivity();
-            }
-            
-            const recentTracksRef = collection(db, `tracks`);
-            const recentTracksQuery = query(recentTracksRef, orderBy("avgRating", "desc"), limit(20));
-            const recentTracks = await getDocs(recentTracksQuery);
-            recentTracks.forEach(doc => {
-                moreTracks.push({
-                    name: doc.data().name,
-                    artists: doc.data().album.artists,
-                    image: doc.data().album.images[1].url,
-                    id: doc.id,
-                });
-                moreTracks = moreTracks;
-            });
-
-            if (trackData?.avgRating >= 0 && trackData?.avgRating < 50) {
-                ratingColor = "bg-red-600";
-            } else if (trackData?.avgRating >= 50 && trackData?.avgRating < 70) {
-                ratingColor = "bg-yellow-400";
-            } else if (trackData?.avgRating >= 70 && trackData?.avgRating <= 100) {
-                ratingColor = "bg-green-600";
-            }
-
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
-            const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
-            const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-            await setDoc(doc(db, `tracks/${$page.params.id}/counter/${date}`), {
-                pageViews: increment(1),
-                date: dateObj,
-            }, {
-                merge: true
-            });
-
-            const counterRef = collection(db, `tracks/${$page.params.id}/counter`);
-            const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
-            const counterDocs = await getDocs(counterQuery);
-
-            const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
-            range.forEach(date => {
-                dates.push(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);    
-                dates = dates;
-                views.push({
-                    x: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-                    y: 0
-                });
-            });
-
-            counterDocs.forEach((doc, index) => {
-                remove(views, (obj) => {
-                    return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
-                })
-                views.push({
-                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
-                    y: doc.data().pageViews
-                });
-                // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
-            });
-
-            options = {
-                chart: {
-                    type: "area",
-                    toolbar: {
-                        show: false,
-                    },
-                    zoom: {
-                        enabled: false,
-                    },
-                    height: "85%",
-                    width: "100%",
-                },
-                dataLabels: {
-                    enabled: false,  
-                },
-                grid: {
-                    show: false,
-                },
-                yaxis: {
-                    axisTicks: {
-                        show: false,
-                    },
-                    labels: {
-                        show: false,
-                    },
-                    forceNiceScale: true,
-                },
-                xaxis: {
-                    categories: dates,
-                    axisTicks: {
-                        show: false,
-                    },
-                    labels: {
-                        show: false,
-                    }
-                },
-                stroke: {
-                    show: true,
-                    curve: "straight",
-                    lineCap: "round",
-                    width: 4,
-                },
-                fill: {
-                    type: "gradient",
-                    gradient: {
-                        shadeIntensity: 0.75,
-                        opacityFrom: 1,
-                        opacityTo: 0.25,
-                        stops: [0],
-                        type: "vertical",
-                    }
-                },
-                tooltip: {
-                    marker: {
-                        show: false,
-                    },
-                    x: {
-                        show: false,
-                    },
-                    theme: "dark"
-                },
-                series: [
-                    {
-                        name: "views",
-                        data: views,
-                    }
-                ],
-            };
-        } else {
-            if (browser) {
-                goto("/error");
-            }
-        }
-    }
 
     function matchKey() {
         switch (trackData?.analysis?.time_signature) {
@@ -821,6 +507,20 @@
         return arr;
     }
 </script>
+
+<svelte:head>
+    <title>{trackData?.album?.artists[0].name} - {trackData?.name} - Reviews - Radiowave for Spotify</title>
+    <meta name="robots" content="index, follow, max-snippet:1, max-image-preview:large, max-video-preview:-1">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content={trackData?.cardPreview}>
+    <meta name="twitter:title" content="{trackData?.album?.artists[0].name} - {trackData?.name} - Reviews - Radiowave for Spotify">
+    <meta name="twitter:text:title" content="{trackData?.album?.artists[0].name} - {trackData?.name} - Reviews - Radiowave for Spotify">
+    <meta property="og:title" content="{trackData?.album?.artists[0].name} - {trackData?.name} - Reviews - Radiowave for Spotify">
+    <meta property="og:image" content={trackData?.cardPreview}>
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="730">
+    <meta property="og:image:height" content="412">
+</svelte:head>
 
 <Modal header="All genres" bind:hideModal={hideModalGenres}><svelte:fragment slot="body">
     {#each publicGenre as genre}

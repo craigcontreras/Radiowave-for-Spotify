@@ -4,11 +4,12 @@
 	import Comments from './../../../../components/Comments.svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
     import { db, auth } from "../../../../firebase.js";
     import { doc, getDoc } from 'firebase/firestore';
     import { onMount } from 'svelte';
     import { v4 as uuidv4 } from "uuid";
+import { get } from 'svelte/store';
 
     let userLoaded = false;
     let reviewExists = false;
@@ -16,6 +17,8 @@
     let reviewDetails = {};
     let trackDetails;
     let reviewLikes = [];
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -44,13 +47,13 @@
                 reviewExists = true;
                 reviewLikes = reviewDoc.data().likes;
             } else {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

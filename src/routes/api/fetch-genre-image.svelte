@@ -1,11 +1,9 @@
 <script context="module">
-    export function load({ url, session }) {
+    export function load({ url }) {
         const ref = url.searchParams.get("name") || "N/A";
-        const userAgent = session.userAgent;
         return {
             props: {
                 ref,
-                userAgent
             }
         }
     }
@@ -13,9 +11,14 @@
 
 <script>
     import { browser } from "$app/env";
+    import { goto } from "$app/navigation";
+    import { session } from "$app/stores";
+    import { get } from "svelte/store";
     export let ref;
 
-    if (userAgent !== "puppeter") {
+    const {userAgent} = get(session);
+
+    if (userAgent !== "puppeteer") {
         if (browser) {
             goto("/error");
         }

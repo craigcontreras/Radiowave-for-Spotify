@@ -6,6 +6,8 @@
     import { onMount } from "svelte";
     import remove from "lodash/remove.js";
     import { auth, db } from "../firebase.js";
+import { get } from 'svelte/store';
+import { session } from '$app/stores';
 
     export let trackId;
     export let trackName;
@@ -25,6 +27,7 @@
     let userLoaded = false;
 
     const allTrackReviews = [];
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -89,8 +92,8 @@
                 }
             });
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }
@@ -116,7 +119,7 @@
                 location.reload();
             }
         } else {
-            if (browser) {
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
                 goto("/error");
             }
         }
@@ -151,7 +154,7 @@
                 location.reload();
             }
         } else {
-            if (browser) {
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
                 goto("/error");
             }
         }

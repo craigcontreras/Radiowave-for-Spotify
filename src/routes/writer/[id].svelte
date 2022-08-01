@@ -12,13 +12,14 @@
     import { faGlobe } from '@fortawesome/free-solid-svg-icons/faGlobe';
     import { faPencil } from '@fortawesome/free-solid-svg-icons/faPencil';
     import { slide } from "svelte/transition";
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
     import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
+import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -45,6 +46,8 @@
     let label = "Newest";
     let category = "release date"
     let type = "albums"
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -99,13 +102,13 @@
                     });
                 });
             } else {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

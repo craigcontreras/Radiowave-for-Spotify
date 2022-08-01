@@ -5,6 +5,8 @@
     import { doc, getDoc, runTransaction, arrayUnion, arrayRemove } from "firebase/firestore";
     import { auth, db } from '../firebase.js';
     import { onMount } from 'svelte';
+import { get } from 'svelte/store';
+import { session } from '$app/stores';
 
     export let fromDoc;
 
@@ -13,6 +15,8 @@
     let currentUserId = "";
     let likes = [];
     let liked = false;
+
+    const {userAgent} = get(session);
 
     // function addToLikes(data) {
     //     likes.push(data);
@@ -55,8 +59,8 @@
                 liked = true;
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

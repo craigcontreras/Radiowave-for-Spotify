@@ -5,6 +5,8 @@
     import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc, limit, startAfter } from 'firebase/firestore';
     import { onMount } from 'svelte';
     import Comment from './Comment.svelte';
+import { get } from 'svelte/store';
+import { session } from '$app/stores';
 
     export let fromCollection;
     export let fromDoc;
@@ -14,6 +16,8 @@
     let userLoaded = false;
     let lastVisible;
     let currentCommentSize;
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -70,8 +74,8 @@
                 });
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

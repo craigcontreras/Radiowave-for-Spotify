@@ -5,6 +5,8 @@
     import { collection, orderBy, query, getDocs, limit, startAfter } from "firebase/firestore";
     import { db, auth } from "../../firebase";
     import { onMount } from 'svelte';
+import { get } from 'svelte/store';
+import { session } from '$app/stores';
 
     let autocompleteResults = [];
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
@@ -16,6 +18,8 @@
     let lastVisible;
     let currentLabelSize;
 
+    const {userAgent} = get(session);
+ 
     onMount(() => {
         loginToFirebase();
 
@@ -83,8 +87,8 @@
                 });
             });
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

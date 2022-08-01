@@ -10,6 +10,7 @@
     import { onMount } from "svelte";
     import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
+import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -26,8 +27,10 @@
     let sortBy = "release_date";
     let ascOrDesc = "desc";
     let label = "Newest";
-    let category = "release date"
-    let type = "albums"
+    let category = "release date";
+    let type = "albums";
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -74,13 +77,13 @@
                     });
                 });
             } else {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }
@@ -137,7 +140,7 @@
 <div class="page mx-6">
     <div class="mt-2 text-sm breadcrumbs">
         <ul>
-            <li>Genres</li>
+            <li><a href="/genre/all">Genres</a></li>
             <li>{genreData?.name}</li>
         </ul>
     </div>

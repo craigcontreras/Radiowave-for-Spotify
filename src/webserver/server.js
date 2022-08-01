@@ -11,6 +11,7 @@ import axios from "axios";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "./firebase.js";
 import * as cron from "node-cron";
+import prerender from "prerender-node";
 import { handler } from "./build/handler.js";
 
 //initialize express server
@@ -24,6 +25,7 @@ const redirect = "https://radiowave.app/callback";
 //middleware
 app.use(cookieParser()); //parses all cookies incoming from requests
 app.use(express.json()); //parses all headers into json that are intended as json but not formatted in json
+app.use(prerender.set('prerenderToken', 'rCgpsgWBD1pqJ1kMfX0M'));
 
 //initialize firebase admin sdk
 initializeApp({

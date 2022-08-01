@@ -8,13 +8,14 @@
     import { faFacebook } from '@fortawesome/free-brands-svg-icons/faFacebook';
     import { faGlobe } from '@fortawesome/free-solid-svg-icons/faGlobe';
     import { slide } from "svelte/transition";
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
     import { doc, getDoc, setDoc } from "firebase/firestore";
     import { onMount, onDestroy } from "svelte";
     import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
+import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -46,6 +47,8 @@
     let artistsPastFourWeeks = [];
     let artistsPastSixMonths = [];
     let artistsLifetime = [];
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -104,13 +107,13 @@
                 artistsPastFourWeeks = userData?.artistsPastFourWeeks;
                 artistsPastSixMonths = userData?.artistsPastSixMonths;
             } else {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
             }
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

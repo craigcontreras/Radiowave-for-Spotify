@@ -1,10 +1,11 @@
 <script>
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { onMount } from "svelte";
     import { doc, getDoc } from 'firebase/firestore';
     import { db, auth } from '../../../firebase.js';
+import { get } from 'svelte/store';
 
     let userLoaded = false;
     let dateRange = "short_term";
@@ -13,6 +14,8 @@
     let artistsPastFourWeeks = [];
     let artistsPastSixMonths = [];
     let artistsLifetime = [];
+
+    const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
@@ -44,8 +47,8 @@
             artistsPastSixMonths = userData?.data?.artistsPastSixMonths;
             artistsLifetime = userData?.data?.artistsPastLifetime;
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

@@ -131,6 +131,35 @@ exports.aggregateDeletedRatings = functions.firestore
         }
     });
 
+exports.trackWrite = functions.runWith({
+    memory: "1GB"
+}).firestore
+    .document("tracks/{trackId}")
+    .onWrite(async (change, context) => {
+        const data = change.after.data();
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setUserAgent("puppeteer");
+        await page.goto(`https://radiowave.app/api/generate-album-social-card?name=${data.name}&artist=${data.album.artists[0].name}&image=${data.album.images[1].url}&album=${data.album.name}&rating=${data.avgRating}&numRatings=${data.numRatings}`);
+        await page.setViewport({
+            width: 730,
+            height: 412,
+            deviceScaleFactor: 2
+        });
+        
+        const screenshot = await page.screenshot();
+
+        const file = getStorage().bucket().file(`images/track-${data.id}`);
+        await file.save(screenshot, {
+            metadata: {
+                contentType: "image/jpeg"
+            }
+        });
+
+        const signedUrl = await file.getSignedUrl({ action: "read", expires: "01-01-2050" });
+        return db.collection("tracks").doc(context.params.trackId).set({ cardPreview: signedUrl[0] }, { merge: true });
+    });
+
 exports.aggregateRatings = functions.firestore
     .document("tracks/{trackId}/reviews/{uid}")
     .onWrite(async (change, context) => {

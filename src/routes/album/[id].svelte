@@ -1,6 +1,12 @@
+<script context="module">
+    export async function load() {
+        await loginToFirebase();
+    }
+</script>
+
 <script>
 	import { slide } from 'svelte/transition';
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
     import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, where } from "firebase/firestore";
@@ -18,6 +24,7 @@
     import TrackReview from '../../components/TrackReview.svelte';
     import Comments from '../../components/Comments.svelte';
     import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
+    import { get } from 'svelte/store';
 
     let userLoaded = false;
     let albumData;
@@ -105,9 +112,9 @@
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
     const id = "4d5e942d117f4de793c86a1c53c3d393";
 
-    onMount(async () => {
-        loginToFirebase();
+    const {userAgent} = get(session);
 
+    onMount(async () => {
         const { chart } = await import("svelte-apexcharts");
         chartMethod = chart;
         chartLoaded = true;
@@ -160,8 +167,8 @@
             }
 
             if (refreshed > 1) {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
                 return;
             } else {
@@ -218,8 +225,8 @@
             }
         }).catch(err => {
             if (err?.response?.status === 400) {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
                 return;
             }
@@ -393,10 +400,14 @@
                     }
                 ],
             };
+
+            return "Completed";
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
+
+            throw new Error("Fuck");
          }
     }
 

@@ -19,8 +19,9 @@ export async function handle({event, resolve}) {
 }
 
 export async function getSession(event) {
+    console.log(event.request.headers.get("user-agent"));
     return {
-        userAgent: event.request.headers["user-agent"],
+        userAgent: event.request.headers.get("user-agent"),
         access_firebase: event.locals.access_firebase
     }
 }

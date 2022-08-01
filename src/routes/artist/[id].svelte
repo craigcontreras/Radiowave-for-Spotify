@@ -8,7 +8,7 @@
     import { faFacebook } from '@fortawesome/free-brands-svg-icons/faFacebook';
     import { faGlobe } from '@fortawesome/free-solid-svg-icons/faGlobe';
     import { slide } from "svelte/transition";
-	import { page } from '$app/stores';
+	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
     import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
@@ -20,6 +20,7 @@
     import InputWithTypeahead from '../../components/InputWithTypeahead.svelte';
     import axios from 'axios';
     import find from 'lodash/find.js';
+import { get } from 'svelte/store';
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 
@@ -56,6 +57,8 @@
     const id = "4d5e942d117f4de793c86a1c53c3d393";
     let userId = "";
 
+    const {userAgent} = get(session);
+
     onMount(() => {
         loginToFirebase();
     })
@@ -80,8 +83,8 @@
             }
         }).then(async (res) => {
             if (refreshed > 1) {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
                 return;
             } else {
@@ -126,7 +129,7 @@
                     refreshed++;
                 });
             } else {
-                if (browser) {
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
                     goto("/error");
                 }
             }
@@ -135,8 +138,8 @@
 
     async function getArtistTracksAndAlbums(userAccessToken, userRefreshToken) {
         if (refreshedForTracks > 1) {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
             return;
         }
@@ -235,8 +238,8 @@
                     refreshedForTracks++;
                 });
             } else {
-                if (browser) {
-                    goto("/error");
+                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                    // goto("/error");
                 }
             }
         });
@@ -265,8 +268,8 @@
             }
             getArtistTracksAndAlbums(userAccessToken, userRefreshToken);
         } else {
-            if (browser) {
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }

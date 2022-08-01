@@ -7,6 +7,8 @@
     import { get } from 'svelte/store';
     import { auth } from "../firebase.js";
 
+    const {userAgent} = get(session);
+
     //try to decrypt the firebase token that was passed on from the server when logging in
     const res = axios({
         method: "post",
@@ -32,12 +34,8 @@
         console.log(err);
         //otherwise, set the session appropriately according to the error
         //redirect user to error page
-        if (browser) {
-            session.set({
-                errCode: err.code,
-                errMsg: "Whoops! Something went wrong."
-            });
-            goto("/error");
+        if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+            // goto("/error");
         }
     });
 </script>

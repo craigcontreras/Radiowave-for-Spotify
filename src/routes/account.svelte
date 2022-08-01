@@ -2,15 +2,16 @@
     //implement latest plays component later
 	import { browser } from '$app/env';
     import { db, auth } from '../firebase';
-    import { getStores } from "$app/stores";
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
+import { get } from 'svelte/store';
+import { session } from '$app/stores';
 
     let userInfo = {};
     let userLoaded = false;
     let userId = ""; //used for latest plays component
 
-    const { session } = getStores();
+    const {userAgent} = get(session);
 
     function getCurrentUser() {
         return new Promise((resolve, reject) => {
@@ -30,12 +31,8 @@
         if (user !== null) {
             userInfo = user;
         } else {
-            if (browser) {
-                session.set({
-                    errMsg: "Please sign in again.",
-                    errCode: 201,
-                });
-                goto("/error");
+            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
+                // goto("/error");
             }
         }
     }
