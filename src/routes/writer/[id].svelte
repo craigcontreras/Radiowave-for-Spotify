@@ -1,3 +1,51 @@
+<script context="module">
+    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
+    import { auth, db } from "../../firebase.js";
+
+    let userLoaded = false;
+    let writerData;
+    let invalidUser = true;
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                writerData,
+                invalidUser,
+            }
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            invalidUser = false;
+        }
+
+        const writerDataDocument = await getDoc(doc(db, `writers/${params.id}`));
+        if (writerDataDocument.exists()) {
+            writerData = writerDataDocument.data();
+        } else {
+            throw new Error("Writer does not exist");
+        }
+
+        return "Completed";
+    }
+</script>
+
 <script>
 	import Dropdown from '../../components/interactive/Dropdown.svelte';
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
@@ -14,17 +62,14 @@
     import { slide } from "svelte/transition";
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
-    import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
-    import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
-import { get } from 'svelte/store';
+    import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
-    let userLoaded = false;
-    let writerData = {};
+    export let writerData = {};
+    export let invalidUser = true;
     let changeMode = false;
     let biographyCollapsed = false;
     let hideModal = true;
@@ -58,19 +103,6 @@ import { get } from 'svelte/store';
             }
         }
     })
-
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
 
     async function loginToFirebase() {
         const user = await getCurrentUser();
@@ -282,7 +314,10 @@ import { get } from 'svelte/store';
                     {/if}
                 </div>
             {/if}
-            <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+
+            {#if !invalidUser}
+                <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {/if}
         </div>
         <div class="content basis-4/5 pr-14">
             <div class="flex justify-between">

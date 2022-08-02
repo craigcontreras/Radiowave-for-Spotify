@@ -20,10 +20,6 @@
         initialLoadData2 = [];
         await loginToFirebase(params);
 
-        if (!albumDocument.exists()) {
-            await initialLoad(userAccessToken, userRefreshToken, params);
-        }
-
         return {
             props: {
                 userId,
@@ -117,6 +113,12 @@
         albumDocument = await getDoc(doc(db, `tracks/${params.id}`));
         if (albumDocument.exists()) {
             trackData = albumDocument.data();
+        } else {
+            if (user !== null) {
+                await initialLoad(userAccessToken, userRefreshToken, params);
+            } else {
+                throw new Error("User is not logged in and track page does not exist. User must be logged in to generate a track page.");
+            }
         }
         return "Completed";
     }
@@ -140,7 +142,7 @@
     import Comments from '../../components/interactive/Comments.svelte';
     import { slide } from "svelte/transition";
     import { get } from 'svelte/store';
-import Seo from '../../components/utilities/SEO.svelte';
+    import Seo from '../../components/utilities/SEO.svelte';
 
     let inChangeMode = false;
     export let userId = "";

@@ -6,6 +6,7 @@
     let ifIsUser = false;
     let userDataDocument;
     let userData;
+    let invalidUser = true;
 
     export async function load({params}) {
         await loginToFirebase(params);
@@ -14,6 +15,7 @@
                 ifIsUser,
                 userDataDocument,
                 userData,
+                invalidUser
             }
         }
     }
@@ -39,10 +41,9 @@
         } else {
             throw new Error("User does not exist");
         }
-        if (user !== null) {
-            if (userDataDocument.id === user.uid) {
-                ifIsUser = true;
-            }
+        if (user !== null && userDataDocument.id === user.uid) {
+            ifIsUser = true;
+            invalidUser = false;
         }
 
         return "Completed";
@@ -71,6 +72,7 @@
     export let userData = {};
     let changeMode = false;
     export let ifIsUser = false;
+    export let invalidUser = true;
     let biographyCollapsed = false;
     let photoHref = "https://firebasestorage.googleapis.com/v0/b/radiowavemusic.appspot.com/o/images%2Fno%20photo%20found.jpg?alt=media&token=678e386f-707c-4ca7-881b-4fbe90db8ca7";
 
@@ -163,7 +165,9 @@
                 </span>
                 <h2 class="text-2xl break-words text-center font-black mt-4">{userData?.displayName}</h2>
             </span>
+            {#if !invalidUser}
             <button class="transition-all hover:text-white hover:bg-stone-800 hover:-translate-y-1 border-2 border-stone-800 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+            {/if}
             <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIO</h2>
                 <button class="float-right inline" on:click={() => {

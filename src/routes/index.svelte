@@ -1,4 +1,5 @@
 <script>
+	import Seo from './../components/utilities/SEO.svelte';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
     import { onMount } from "svelte";
@@ -29,6 +30,7 @@
     }
 </script>
 
+<Seo name="" description="" image=""/>
 <a href="/login">Login</a>
 
 <style>

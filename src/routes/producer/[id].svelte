@@ -28,7 +28,7 @@
             producerData = producerDataDocument.data();
             return "Completed";
         } else {
-            throw new Error("lol");
+            throw new Error("Producer does not exist");
         }
     }
 

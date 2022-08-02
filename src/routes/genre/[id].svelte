@@ -28,7 +28,7 @@
             genreData = genreDataDocument.data();
             return "Completed";
         } else {
-            throw new Error("lol");
+            throw new Error("Genre does not exist");
         }
     }
 

@@ -352,9 +352,18 @@ function startCronJobs(access, refresh, uuid) {
                         "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
                         "Content-Type": "application/x-www-form-urlencoded"
                     }
-                }).then(spotifyData => {
+                }).then(async (spotifyData) => {
                     //if we can refresh the access, then retry
                     const newAccess = spotifyData.data.access_token;
+                    const newRefresh = spotifyData.data.refresh_token;
+
+                    await setDoc(doc(db, `users/${uuid}`), {
+                        access: newAccess,
+                        refresh: newRefresh
+                    }, {
+                        merge: true
+                    });
+
                     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                         headers: {
                             Authorization: `Bearer ${newAccess}`

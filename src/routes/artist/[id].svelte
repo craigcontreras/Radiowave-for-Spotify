@@ -44,6 +44,10 @@
         artistDataDocument = await getDoc(doc(db, `artists/${params.id}`));
         if (artistDataDocument.exists()) {
             artistData = artistDataDocument.data();
+        } else {
+            if (user === null) {
+                throw new Error("User is not logged in and artist does not exist. User must be logged in to generate the artist page.");
+            }
         }
         return "Completed";
     }
@@ -127,6 +131,7 @@
     import axios from 'axios';
     import find from 'lodash/find.js';
     import { get } from 'svelte/store';
+import Error from "../__error.svelte";
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 

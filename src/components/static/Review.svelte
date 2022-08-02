@@ -22,7 +22,7 @@
         <a href="/user/{reviewAuthor}"><p class="text-xl font-bold">{reviewAuthor}</p></a>
     {:then data}
         <a href="/user/{reviewAuthor}"> 
-            <img class="inline-block align-middle rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
+            <img loading="lazy" class="inline-block align-middle rounded-full h-10 w-10" src="{data.get("photoURL")}" alt="Profile picture of {data.get("displayName")}">
             <p class="pl-2 inline-block text-xl font-bold">{data.get("displayName")}</p>
         </a>
     {:catch err}

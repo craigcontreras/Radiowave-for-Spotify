@@ -19,10 +19,6 @@
         initialLoadData = [];
         await loginToFirebase(params);
 
-        if (!albumDocument.exists()) {
-            await initialLoad(userAccessToken, userRefreshToken, params);
-        }
-
         return {
             props: {
                 userId,
@@ -107,6 +103,12 @@
         albumDocument = await getDoc(doc(db, `albums/${params.id}`));
         if (albumDocument.exists()) {
             albumData = albumDocument.data();
+        } else {
+            if (user !== null) {
+                await initialLoad(userAccessToken, userRefreshToken, params);
+            } else {
+                throw new Error("User is not logged in and album does not exist. User must be logged in to generate the album page.");
+            }
         }
         return "Completed";
     }

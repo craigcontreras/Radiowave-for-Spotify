@@ -17,6 +17,7 @@
     <meta property="og:title" content={title}>
     <meta property="og:type" content="article">
     <meta property="og:description" content={description}>
+    <meta property="description" content={description}>
     <meta property="og:image" content={image}>
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="730">

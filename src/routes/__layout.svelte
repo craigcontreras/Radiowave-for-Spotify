@@ -4,7 +4,6 @@
 </script>
 
 <script>
-    import { fade } from "svelte/transition";
     import { navigating } from '$app/stores';
 	import PageTransition from './../components/utilities/PageTransition.svelte';
 	import Navbar from './../components/static/Navbar.svelte';
