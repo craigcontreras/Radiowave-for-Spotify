@@ -11,7 +11,6 @@ import { session } from '$app/stores';
     let autocompleteResults = [];
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
     let searchQuery = "";
-    let userLoaded = false;
 
     let tracks = [];
 
@@ -55,42 +54,22 @@ import { session } from '$app/stores';
         tracks = tracks;
     }
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const allLabelsRef = collection(db, `genres`);
-            const allLabelsQuery = query(allLabelsRef, orderBy("name", "asc"), limit(19));
-            const allLabels = await getDocs(allLabelsQuery);
+        const allLabelsRef = collection(db, `genres`);
+        const allLabelsQuery = query(allLabelsRef, orderBy("name", "asc"), limit(19));
+        const allLabels = await getDocs(allLabelsQuery);
 
-            lastVisible = allLabels.docs[allLabels.docs.length - 1];
-            currentLabelSize = allLabels.docs.length;
+        lastVisible = allLabels.docs[allLabels.docs.length - 1];
+        currentLabelSize = allLabels.docs.length;
 
-            allLabels.forEach((doc) => {
-                addToTracks({
-                    name: doc.data().name.toLowerCase(),
-                    displayName: doc.data().name,
-                    id: doc.data().id,
-                    src: doc.data().photoURL,
-                });
+        allLabels.forEach((doc) => {
+            addToTracks({
+                name: doc.data().name.toLowerCase(),
+                displayName: doc.data().name,
+                id: doc.data().id,
+                src: doc.data().photoURL,
             });
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
-        }
+        });
     }
 </script>
 

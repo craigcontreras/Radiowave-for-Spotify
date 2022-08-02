@@ -31,12 +31,7 @@
             goto("/account");
         }
     }).catch((err) => {
-        console.log(err);
-        //otherwise, set the session appropriately according to the error
-        //redirect user to error page
-        if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-            // goto("/error");
-        }
+        throw new Error(err);
     });
 </script>
 

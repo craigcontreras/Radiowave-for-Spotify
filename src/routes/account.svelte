@@ -1,17 +1,19 @@
-<script>
-    //implement latest plays component later
-	import { browser } from '$app/env';
+<script context="module">
     import { db, auth } from '../firebase';
-    import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
-import { get } from 'svelte/store';
-import { session } from '$app/stores';
 
-    let userInfo = {};
+    let userInfo;
     let userLoaded = false;
-    let userId = ""; //used for latest plays component
+    let invalidUser = true;
 
-    const {userAgent} = get(session);
+    export async function load({params}) {
+        await loginToFirebase();
+        return {
+            props: {
+                invalidUser,
+                userInfo
+            }
+        }
+    }
 
     function getCurrentUser() {
         return new Promise((resolve, reject) => {
@@ -29,26 +31,24 @@ import { session } from '$app/stores';
     async function loginToFirebase() {
         const user = await getCurrentUser(auth);
         if (user !== null) {
+            invalidUser = false;
             userInfo = user;
+            return "Completed";
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
+            throw new Error("User not logged in");
         }
     }
-    
-    //on component load, log into firebase
-    onMount(() => {
-        loginToFirebase();
-    })
 </script>
 
-{#if userLoaded}
+<script>
+    export let userInfo = {};
+    export let invalidUser;
+</script>
+
+{#if !invalidUser}
     <p>Signed in as {userInfo.displayName}</p>
     
     <p>{JSON.stringify(userInfo)}</p>
-
-    <h2>Latest plays</h2>
 {:else}
     <p>Not signed in</p>
 {/if}

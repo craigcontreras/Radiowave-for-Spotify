@@ -5,20 +5,15 @@
     import { collection, orderBy, query, getDocs, limit, startAfter } from "firebase/firestore";
     import { db, auth } from "../../firebase";
     import { onMount } from 'svelte';
-import { get } from 'svelte/store';
-import { session } from '$app/stores';
 
     let autocompleteResults = [];
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
     let searchQuery = "";
-    let userLoaded = false;
 
     let tracks = [];
 
     let lastVisible;
     let currentLabelSize;
-
-    const {userAgent} = get(session);
  
     onMount(() => {
         loginToFirebase();
@@ -55,42 +50,22 @@ import { session } from '$app/stores';
         tracks = tracks;
     }
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const allLabelsRef = collection(db, `users`);
-            const allLabelsQuery = query(allLabelsRef, orderBy("name", "asc"), limit(19));
-            const allLabels = await getDocs(allLabelsQuery);
+        const allLabelsRef = collection(db, `users`);
+        const allLabelsQuery = query(allLabelsRef, orderBy("name", "asc"), limit(19));
+        const allLabels = await getDocs(allLabelsQuery);
 
-            lastVisible = allLabels.docs[allLabels.docs.length - 1];
-            currentLabelSize = allLabels.docs.length;
+        lastVisible = allLabels.docs[allLabels.docs.length - 1];
+        currentLabelSize = allLabels.docs.length;
 
-            allLabels.forEach((doc) => {
-                addToTracks({
-                    name: doc.data().displayName.toLowerCase(),
-                    displayName: doc.data().displayName,
-                    id: doc.data().id,
-                    src: doc.data().photoURL || "https://firebasestorage.googleapis.com/v0/b/radiowavemusic.appspot.com/o/images%2Fno%20photo%20found.jpg?alt=media&token=678e386f-707c-4ca7-881b-4fbe90db8ca7",
-                });
+        allLabels.forEach((doc) => {
+            addToTracks({
+                name: doc.data().displayName.toLowerCase(),
+                displayName: doc.data().displayName,
+                id: doc.data().id,
+                src: doc.data().photoURL || "https://firebasestorage.googleapis.com/v0/b/radiowavemusic.appspot.com/o/images%2Fno%20photo%20found.jpg?alt=media&token=678e386f-707c-4ca7-881b-4fbe90db8ca7",
             });
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
-        }
+        });
     }
 </script>
 

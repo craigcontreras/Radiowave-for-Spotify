@@ -1,44 +1,27 @@
-<script>
-	import { page, session } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { browser } from '$app/env';
-    import { onMount } from "svelte";
+<script context="module">
     import { doc, getDoc } from 'firebase/firestore';
-    import { db, auth } from '../../../firebase.js';
-import { get } from 'svelte/store';
+    import { db } from '../../../firebase.js';
 
-    let userLoaded = false;
-    let dateRange = "short_term";
     let userData = {};
-
     let tracksPastFourWeeks = [];
     let tracksPastSixMonths = [];
     let tracksLifetime = [];
 
-    const {userAgent} = get(session);
-
-    onMount(() => {
-        loginToFirebase();
-    });
-
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                userData,
+                tracksPastFourWeeks,
+                tracksPastSixMonths,
+                tracksLifetime,
             }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
+        }
     }
 
-    async function loginToFirebase() {
-        const user = await getCurrentUser();
-
-        if (user !== null) {
-            const userDataDocument = await getDoc(doc(db, `users/${$page.params.id}`));
+    async function loginToFirebase(params) {
+        const userDataDocument = await getDoc(doc(db, `users/${params.id}`));
+        if (userDataDocument.exists()) {
             userData = {
                 data: userDataDocument.data(),
                 id: userDataDocument.id,
@@ -47,11 +30,20 @@ import { get } from 'svelte/store';
             tracksPastSixMonths = userData?.data?.tracksPastSixMonths;
             tracksLifetime = userData?.data?.tracksPastLifetime;
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
+            throw new Error("User does not exist");
         }
+        return "Completed";
     }
+</script>
+
+<script>
+	import { page } from '$app/stores';
+
+    let dateRange = "short_term";
+    export let userData = {};
+    export let tracksPastFourWeeks = [];
+    export let tracksPastSixMonths = [];
+    export let tracksLifetime = [];
 </script>
 
 <div class="page mx-6">

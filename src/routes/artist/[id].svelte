@@ -1,3 +1,111 @@
+<script context="module">
+    import { auth, db } from "../../firebase.js";
+    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
+
+    let userId;
+    let userLoaded = false;
+    let userRefreshToken;
+    let userAccessToken;
+    let initialLoadData;
+    let artistDataDocument;
+    let artistData;
+    let invalidUser = true;
+    let refreshed = 0;
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+
+        if (!artistDataDocument.exists()) {
+            await initialLoad(userAccessToken, userRefreshToken, params);
+        }
+        return {
+            props: {
+                userLoaded,
+                userRefreshToken,
+                userAccessToken,
+                initialLoadData,
+                artistDataDocument,
+                userId,
+                artistData,
+                invalidUser
+            }
+        }
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            invalidUser = false;
+            userId = user.uid;
+            const userDataDocument = await getDoc(doc(db, `users/${user.uid}`));
+            userAccessToken = userDataDocument.data().access;
+            userRefreshToken = userDataDocument.data().refresh;
+        }
+        artistDataDocument = await getDoc(doc(db, `artists/${params.id}`));
+        if (artistDataDocument.exists()) {
+            artistData = artistDataDocument.data();
+        }
+        return "Completed";
+    }
+
+
+    async function initialLoad(userAccessToken, userRefreshToken, params) {
+        try {
+            const spotifyArtist = await axios.get(`https://api.spotify.com/v1/artists/${params.id}`, {
+                headers: {
+                    Authorization: `Bearer ${userAccessToken}`
+                }
+            });
+            if (refreshed > 1) {
+                throw new Error("Timed out");
+            } else {
+                initialLoadData = spotifyArtist.data;
+            }
+            return "Completed";
+        } catch (err) {
+            if (refreshed < 1) {
+                const searchParams = new URLSearchParams();
+                searchParams.append("grant_type", "refresh_token");
+                searchParams.append("refresh_token", userRefreshToken);
+                searchParams.append("client_id", id);
+                axios.post("https://accounts.spotify.com/api/token", searchParams, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                }).then(async (spotifyData) => {
+                    const newAccess = spotifyData.data.access_token;
+                    const newRefresh = spotifyData.data.refresh_token;
+                    await setDoc(doc(db, `users/${userId}`), {
+                        access: newAccess,
+                        refresh: newRefresh
+                    }, {
+                        merge: true
+                    });
+                    refreshed++;
+                    initialLoad(newAccess, newRefresh, params);
+                }).catch(err => {
+                    refreshed++;
+                });
+            } else {
+                throw new Error("Timed out");
+            }
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+</script>
+
 <script>
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
 	import { marked } from 'marked';
@@ -11,23 +119,24 @@
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
-    import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
     import remove from 'lodash/remove.js';
     import Modal from '../../components/Modal.svelte';
     import InputWithTypeahead from '../../components/InputWithTypeahead.svelte';
     import axios from 'axios';
     import find from 'lodash/find.js';
-import { get } from 'svelte/store';
+    import { get } from 'svelte/store';
 
     const characterRegex = /^([a-zA-Z0-9\s_-]+)$/
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
-    let userLoaded = false;
-    let artistData;
+    export let artistData;
+    export let artistDataDocument;
+    export let userRefreshToken;
+    export let userAccessToken;
+    export let initialLoadData;
     let artistAlbums = [];
     let artistSingles = [];
     let artistAppearances = [];
@@ -52,89 +161,16 @@ import { get } from 'svelte/store';
     let publicGenres = [];
     let hideModalGenres = true;
 
-    let refreshed = 0;
     let refreshedForTracks = 0;
     const id = "4d5e942d117f4de793c86a1c53c3d393";
-    let userId = "";
+    export let userId = "";
+    export let invalidUser;
 
     const {userAgent} = get(session);
 
     onMount(() => {
         loginToFirebase();
     })
-
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
-    function initialLoad(userAccessToken, userRefreshToken) {
-        const spotifyArtist = axios.get(`https://api.spotify.com/v1/artists/${$page.params.id}`, {
-            headers: {
-                Authorization: `Bearer ${userAccessToken}`
-            }
-        }).then(async (res) => {
-            if (refreshed > 1) {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-                return;
-            } else {
-                artistData = {
-                    avgRating: 0,
-                    numRatings: 0,
-                    images: res.data.images,
-                    name: res.data.name,
-                    popularity: res.data.popularity,
-                    id: res.data.id,
-                    external_urls: res.data.external_urls.spotify,
-                    genre: [],
-                    genreNames: [],
-                    avgRating: 0,
-                    numRatings: 0,
-                };
-
-                await setDoc(doc(db, `artists/${$page.params.id}`), artistData);
-            }
-        }).catch(err => {
-            if (refreshed < 1) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", userRefreshToken);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then(async (spotifyData) => {
-                    const newAccess = spotifyData.data.access_token;
-                    const newRefresh = spotifyData.data.refresh_token;
-                    await setDoc(doc(db, `users/${userId}`), {
-                        access: newAccess,
-                        refresh: newRefresh
-                    }, {
-                        merge: true
-                    });
-                    refreshed++;
-                    initialLoad(newAccess, newRefresh);
-                }).catch(err => {
-                    refreshed++;
-                });
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    goto("/error");
-                }
-            }
-        });
-    }
 
     async function getArtistTracksAndAlbums(userAccessToken, userRefreshToken) {
         if (refreshedForTracks > 1) {
@@ -245,33 +281,43 @@ import { get } from 'svelte/store';
         });
     }
 
+    async function loadInitialData() {
+        if (initialLoadData) {
+            artistData = {
+                avgRating: 0,
+                numRatings: 0,
+                images: initialLoadData.images,
+                name: initialLoadData.name,
+                popularity: initialLoadData.popularity,
+                id: initialLoadData.id,
+                external_urls: initialLoadData.external_urls.spotify,
+                genre: [],
+                genreNames: [],
+                avgRating: 0,
+                numRatings: 0,
+            };
+            await setDoc(doc(db, `artists/${$page.params.id}`), artistData);
+        }
+    }
+
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            userId = user.uid;
-            const userDataDocument = await getDoc(doc(db, `users/${user.uid}`));
-            let userAccessToken = userDataDocument.data().access;
-            let userRefreshToken = userDataDocument.data().refresh;
-            const artistDataDocument = await getDoc(doc(db, `artists/${$page.params.id}`));
-            if (artistDataDocument.exists()) {
-                artistData = artistDataDocument.data();
-                editBiography = artistData?.biography;
-                websiteLink = artistData?.websiteHref;
-                youtubeLink = artistData?.youtubeHref;
-                twitterLink = artistData?.twitterHref;
-                instagramLink = artistData?.instagramHref;
-                facebookLink = artistData?.facebookHref;
-                publicGenres = artistData?.genre,
-                genresForQuerying = artistData?.genreNames;
-            } else {
-                initialLoad(userAccessToken, userRefreshToken);
-            }
-            getArtistTracksAndAlbums(userAccessToken, userRefreshToken);
+        if (artistDataDocument.exists()) {
+            editBiography = artistData?.biography;
+            websiteLink = artistData?.websiteHref;
+            youtubeLink = artistData?.youtubeHref;
+            twitterLink = artistData?.twitterHref;
+            instagramLink = artistData?.instagramHref;
+            facebookLink = artistData?.facebookHref;
+            publicGenres = artistData?.genre,
+            genresForQuerying = artistData?.genreNames;
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
+            if (!invalidUser) {
+                loadInitialData();
+            } else {
+                throw new Error("User is not logged and page does not exist");
             }
         }
+        getArtistTracksAndAlbums(userAccessToken, userRefreshToken);
     }
 
     async function submitProposedDetails() {
@@ -498,7 +544,9 @@ import { get } from 'svelte/store';
                     {/if}
                 </div>
             {/if}
-            <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {#if !invalidUser}
+                <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {/if}
         </div>
         <div class="content basis-4/5 pr-14">
             {#if artistAlbums.length !== 0}

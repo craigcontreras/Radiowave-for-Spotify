@@ -1,3 +1,54 @@
+<script context="module">
+    import { doc, getDoc, setDoc } from "firebase/firestore";
+    import { auth, db } from "../../firebase.js";
+
+    let userLoaded = false;
+    let ifIsUser = false;
+    let userDataDocument;
+    let userData;
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                ifIsUser,
+                userDataDocument,
+                userData,
+            }
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        userDataDocument = await getDoc(doc(db, `users/${params.id}`));
+        if (userDataDocument.exists()) {
+            userData = userDataDocument.data();
+        } else {
+            throw new Error("User does not exist");
+        }
+        if (user !== null) {
+            if (userDataDocument.id === user.uid) {
+                ifIsUser = true;
+            }
+        }
+
+        return "Completed";
+    }
+</script>
+
 <script>
 	import { marked } from 'marked';
 	import Icon from 'svelte-awesome';
@@ -11,18 +62,15 @@
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { doc, getDoc, setDoc } from "firebase/firestore";
     import { onMount, onDestroy } from "svelte";
-    import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
-import { get } from 'svelte/store';
+    import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
-    let userLoaded = false;
-    let userData = {};
+    export let userData = {};
     let changeMode = false;
-    let ifIsUser = false;
+    export let ifIsUser = false;
     let biographyCollapsed = false;
     let photoHref = "https://firebasestorage.googleapis.com/v0/b/radiowavemusic.appspot.com/o/images%2Fno%20photo%20found.jpg?alt=media&token=678e386f-707c-4ca7-881b-4fbe90db8ca7";
 
@@ -58,64 +106,31 @@ import { get } from 'svelte/store';
         pusher.unsubscribe("cache-recently-played");
     });
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const userDataDocument = await getDoc(doc(db, `users/${$page.params.id}`));
+        const channel = pusher.subscribe("cache-recently-played");
+        channel.bind($page.params.id, data => {
+            recentPlays = data.data || [];
+        });
 
-            if (userDataDocument.id === user.uid) {
-                ifIsUser = true;
-            }
+        channel.bind("pusher:cache_miss", data => {
+            recentPlays = data.data || [];
+        });
 
-            const channel = pusher.subscribe("cache-recently-played");
-            channel.bind($page.params.id, data => {
-                recentPlays = data.data || [];
-            });
-
-            channel.bind("pusher:cache_miss", data => {
-                recentPlays = data.data || [];
-            });
-
-            if (userDataDocument.exists()) {
-                userData = userDataDocument.data();
-                if (userData?.photoURL) {
-                    photoHref = userData?.photoURL;
-                }
-                editBiography = userData?.biography;
-                websiteLink = userData?.websiteHref;
-                youtubeLink = userData?.youtubeHref;
-                twitterLink = userData?.twitterHref;
-                instagramLink = userData?.instagramHref;
-                facebookLink = userData?.facebookHref;
-                tracksLifetime = userData?.tracksPastLifetime;
-                tracksPastFourWeeks = userData?.tracksPastFourWeeks;
-                tracksPastSixMonths = userData?.tracksPastSixMonths;
-                artistsLifetime = userData?.artistsPastLifetime;
-                artistsPastFourWeeks = userData?.artistsPastFourWeeks;
-                artistsPastSixMonths = userData?.artistsPastSixMonths;
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
+        if (userData?.photoURL) {
+            photoHref = userData?.photoURL;
         }
+        editBiography = userData?.biography;
+        websiteLink = userData?.websiteHref;
+        youtubeLink = userData?.youtubeHref;
+        twitterLink = userData?.twitterHref;
+        instagramLink = userData?.instagramHref;
+        facebookLink = userData?.facebookHref;
+        tracksLifetime = userData?.tracksPastLifetime;
+        tracksPastFourWeeks = userData?.tracksPastFourWeeks;
+        tracksPastSixMonths = userData?.tracksPastSixMonths;
+        artistsLifetime = userData?.artistsPastLifetime;
+        artistsPastFourWeeks = userData?.artistsPastFourWeeks;
+        artistsPastSixMonths = userData?.artistsPastSixMonths;
     }
 
     function enterChangeMode() {
@@ -127,6 +142,10 @@ import { get } from 'svelte/store';
 
     }
 </script>
+
+<svelte:head>
+    
+</svelte:head>
 
 <div class="page mx-6">
     <div class="mt-2 text-sm breadcrumbs">
@@ -252,7 +271,7 @@ import { get } from 'svelte/store';
                                 <div class="inline-flex items-center gap-6">
                                     <img class="rounded-lg drop-shadow-xl h-[50px] w-[50px] max-h-full max-w-full" src={item.image} alt="">
                                     <p class="font-bold">{item.name}</p>
-                                    <p class="text-xs">{new Date(item.played_at).getFullYear()}-{new Date(item.played_at).getMonth()}-{new Date(item.played_at).getDate()} @ {new Date(item.played_at).getHours()}:{new Date(item.played_at).getMinutes()}</p> 
+                                    <p class="text-xs">{new Date(item.played_at).getFullYear()}-{new Date(item.played_at).getMonth() + 1}-{new Date(item.played_at).getDate()} @ {new Date(item.played_at).getHours()}:{new Date(item.played_at).getMinutes()}</p> 
                                 </div>
                                 <p>{item.artist}</p>
                             </a>

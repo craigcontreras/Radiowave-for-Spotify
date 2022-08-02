@@ -5,8 +5,8 @@
     import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc, limit, startAfter } from 'firebase/firestore';
     import { onMount } from 'svelte';
     import Comment from './Comment.svelte';
-import { get } from 'svelte/store';
-import { session } from '$app/stores';
+    import { get } from 'svelte/store';
+    import { session } from '$app/stores';
 
     export let fromCollection;
     export let fromDoc;
@@ -14,6 +14,7 @@ import { session } from '$app/stores';
     let comments = [];
     let commentMessage = "";
     let userLoaded = false;
+    let invalidUser = true;
     let lastVisible;
     let currentCommentSize;
 
@@ -59,6 +60,7 @@ import { session } from '$app/stores';
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
+            invalidUser = false;
             currentUserId = user.uid;
             
             const allCommentsRef = collection(db, fromCollection);
@@ -72,10 +74,6 @@ import { session } from '$app/stores';
                 allComments.forEach((doc) => {
                     addToComments(doc.data());
                 });
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
             }
         }
     }
@@ -106,6 +104,7 @@ import { session } from '$app/stores';
     for use on the specified page
  -->
 
+{#if !invalidUser}
 <form action="" on:submit|preventDefault>
     <div class="w-10/12 pb-2">
         <textarea class="hover:-translate-y-1 focus:drop-shadow-xl transition-all textarea textarea-bordered w-full" bind:value={commentMessage} required placeholder="Comment..." cols="20" rows="10"></textarea>
@@ -118,6 +117,9 @@ import { session } from '$app/stores';
         }
     }}>Submit</button>
 </form>
+{:else}
+<p>Please log in to comment.</p>
+{/if}
 
 <div class="comments">
     {#each comments as comment}

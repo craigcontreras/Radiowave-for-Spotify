@@ -149,7 +149,7 @@ exports.trackWrite = functions.runWith({
         
         const screenshot = await page.screenshot();
 
-        const file = getStorage().bucket().file(`images/track-${data.id}`);
+        const file = getStorage().bucket().file(`images/track-${change.after.id}`);
         await file.save(screenshot, {
             metadata: {
                 contentType: "image/jpeg"
@@ -158,6 +158,36 @@ exports.trackWrite = functions.runWith({
 
         const signedUrl = await file.getSignedUrl({ action: "read", expires: "01-01-2050" });
         return db.collection("tracks").doc(context.params.trackId).set({ cardPreview: signedUrl[0] }, { merge: true });
+    });
+
+
+exports.albumWrite = functions.runWith({
+    memory: "1GB"
+}).firestore
+    .document("albums/{albumId}")
+    .onWrite(async (change, context) => {
+        const data = change.after.data();
+        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setUserAgent("puppeteer");
+        await page.goto(`https://radiowave.app/api/generate-album-social-card?name=${data.name}&artist=${data.artists[0].name}&image=${data.images[1].url}&rating=${data.avgRating}&numRatings=${data.numRatings}`);
+        await page.setViewport({
+            width: 730,
+            height: 412,
+            deviceScaleFactor: 2
+        });
+        
+        const screenshot = await page.screenshot();
+
+        const file = getStorage().bucket().file(`images/album-${change.after.id}`);
+        await file.save(screenshot, {
+            metadata: {
+                contentType: "image/jpeg"
+            }
+        });
+
+        const signedUrl = await file.getSignedUrl({ action: "read", expires: "01-01-2050" });
+        return db.collection("albums").doc(context.params.albumId).set({ cardPreview: signedUrl[0] }, { merge: true });
     });
 
 exports.aggregateRatings = functions.firestore

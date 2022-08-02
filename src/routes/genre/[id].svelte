@@ -1,3 +1,51 @@
+<script context="module">
+    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
+    import { auth, db } from "../../firebase.js";
+
+    let userLoaded = false;
+    let genreData;
+    let invalidUser = true;
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                userLoaded,
+                genreData,
+                invalidUser,
+            }
+        }
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            invalidUser = false;
+        }
+
+        const genreDataDocument = await getDoc(doc(db, `genres/${params.id}`));
+        if (genreDataDocument.exists()) {
+            genreData = genreDataDocument.data();
+            return "Completed";
+        } else {
+            throw new Error("lol");
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+</script>
+
 <script>
 	import Dropdown from './../../components/Dropdown.svelte';
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
@@ -6,16 +54,14 @@
 	import { page } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
-    import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
-import { get } from 'svelte/store';
+    import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
-    let userLoaded = false;
-    let genreData = {};
+    export let genreData = {};
+    export let invalidUser;
     let changeMode = false;
     let biographyCollapsed = false;
     
@@ -30,8 +76,6 @@ import { get } from 'svelte/store';
     let category = "release date";
     let type = "albums";
 
-    const {userAgent} = get(session);
-
     onMount(() => {
         loginToFirebase();
 
@@ -42,50 +86,22 @@ import { get } from 'svelte/store';
         }
     })
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const genreDataDocument = await getDoc(doc(db, `genres/${$page.params.id}`));
-            if (genreDataDocument.exists()) {
-                genreData = genreDataDocument.data();
-                editBiography = genreData?.biography;
+        editBiography = genreData?.biography;
 
-                const allTracksRef = collection(db, type);
-                const allTracksQuery = query(allTracksRef, where("genreNames", "array-contains-any", [genreData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
-                const allTracks = await getDocs(allTracksQuery);
+        const allTracksRef = collection(db, type);
+        const allTracksQuery = query(allTracksRef, where("genreNames", "array-contains-any", [genreData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
+        const allTracks = await getDocs(allTracksQuery);
 
-                lastVisible = allTracks.docs[allTracks.docs.length - 1];
-                currentLabelSize = allTracks.docs.length;
+        lastVisible = allTracks.docs[allTracks.docs.length - 1];
+        currentLabelSize = allTracks.docs.length;
 
-                allTracks.forEach((doc) => {
-                    addToTracks({
-                        data: doc.data(),
-                        id: doc.id,
-                    });
-                });
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
-        }
+        allTracks.forEach((doc) => {
+            addToTracks({
+                data: doc.data(),
+                id: doc.id,
+            });
+        });
     }
 
     async function paginateData() {
@@ -179,7 +195,9 @@ import { get } from 'svelte/store';
                     </div>
                 {/if}
             </div>
-            <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {#if !invalidUser}
+                <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {/if}
         </div>
         <div class="content basis-4/5 pr-14">
             <div class="flex justify-between">

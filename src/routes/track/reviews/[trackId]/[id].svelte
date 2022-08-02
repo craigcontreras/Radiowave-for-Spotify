@@ -1,30 +1,26 @@
-<script>
-	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
-	import Review from './../../../../components/Review.svelte';
-	import Comments from './../../../../components/Comments.svelte';
-	import { goto } from '$app/navigation';
-	import { browser } from '$app/env';
-	import { page, session } from '$app/stores';
+<script context="module">
     import { db, auth } from "../../../../firebase.js";
-    import { doc, getDoc } from 'firebase/firestore';
-    import { onMount } from 'svelte';
     import { v4 as uuidv4 } from "uuid";
-import { get } from 'svelte/store';
+    import { doc, getDoc } from 'firebase/firestore';
 
-    let userLoaded = false;
-    let reviewExists = false;
+    let reviewExists;
+    let reviewLikes;
+    let reviewDetails;
+    let trackDetails;
 
-    let reviewDetails = {};
-    let trackDetails = {};
-    let reviewLikes = [];
-
-    const {userAgent} = get(session);
-
-    onMount(() => {
-        loginToFirebase();
-        getTrack();
-        getReview();
-    })
+    export async function load({params}) {
+        await loginToFirebase(params);
+        await getReview(params);
+        await getTrack(params);
+        return {
+            props: {
+                reviewExists,
+                reviewLikes,
+                reviewDetails,
+                trackDetails,
+            }
+        }
+    }
 
     function getCurrentUser() {
         return new Promise((resolve, reject) => {
@@ -39,34 +35,40 @@ import { get } from 'svelte/store';
         })
     }
 
-    async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const reviewDoc = await getDoc(doc(db, `tracks/${$page.params.trackId}/reviews/${$page.params.id}`));
-            if (reviewDoc.exists()) {
-                reviewExists = true;
-                reviewLikes = reviewDoc.data().likes;
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-            }
+    async function loginToFirebase(params) {
+        const reviewDoc = await getDoc(doc(db, `tracks/${params.trackId}/reviews/${params.id}`));
+        if (reviewDoc.exists()) {
+            reviewExists = true;
+            reviewLikes = reviewDoc.data().likes;
+            return "Completed";
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
+            throw new Error("Review does not exist");
         }
     }
 
-    async function getReview() {
-        const reviewDetailsData = await getDoc(doc(db, `tracks/${$page.params.trackId}/reviews/${$page.params.id}`));
+    async function getReview(params) {
+        const reviewDetailsData = await getDoc(doc(db, `tracks/${params.trackId}/reviews/${params.id}`));
         reviewDetails = reviewDetailsData.data();
+        return "Completed";
     }
 
-    async function getTrack() {
-        const trackDetailsData = await getDoc(doc(db, `tracks/${$page.params.trackId}`));
+    async function getTrack(params) {
+        const trackDetailsData = await getDoc(doc(db, `tracks/${params.trackId}`));
         trackDetails = trackDetailsData.data();
+        return "Completed";
     }
+</script>
+
+<script>
+	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
+	import Review from './../../../../components/Review.svelte';
+	import Comments from './../../../../components/Comments.svelte';
+	import { page } from '$app/stores';
+
+    export let reviewExists = false;
+    export let reviewDetails = {};
+    export let trackDetails = {};
+    export let reviewLikes = [];
 </script>
 
 <div class="mx-6">

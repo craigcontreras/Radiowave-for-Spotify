@@ -1,72 +1,62 @@
-<script>
-	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
-	import Review from './../../../../components/Review.svelte';
-	import Comments from './../../../../components/Comments.svelte';
-	import { goto } from '$app/navigation';
-	import { browser } from '$app/env';
-	import { page, session } from '$app/stores';
+<script context="module">
     import { db, auth } from "../../../../firebase.js";
     import { doc, getDoc } from 'firebase/firestore';
-    import { onMount } from 'svelte';
-    import { v4 as uuidv4 } from "uuid";
-import { get } from 'svelte/store';
 
-    let userLoaded = false;
+    let reviewLikes;
     let reviewExists = false;
-
-    let reviewDetails = {};
+    let reviewDetails;
     let trackDetails;
-    let reviewLikes = [];
 
-    const {userAgent} = get(session);
-
-    onMount(() => {
-        loginToFirebase();
-        getTrack();
-        getReview();
-    })
-
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        })
-    }
-
-    async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const reviewDoc = await getDoc(doc(db, `albums/${$page.params.trackId}/reviews/${$page.params.id}`));
-            if (reviewDoc.exists()) {
-                reviewExists = true;
-                reviewLikes = reviewDoc.data().likes;
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
+    export async function load({params}) {
+        await loginToFirebase(params);
+        await getTrack(params);
+        await getReview(params);
+        return {
+            props: {
+                reviewLikes,
+                reviewExists,
+                reviewDetails,
+                trackDetails,
             }
         }
     }
 
-    async function getReview() {
-        const reviewDetailsData = await getDoc(doc(db, `albums/${$page.params.trackId}/reviews/${$page.params.id}`));
+    async function getReview(params) {
+        const reviewDetailsData = await getDoc(doc(db, `albums/${params.trackId}/reviews/${params.id}`));
         reviewDetails = reviewDetailsData.data();
+        return "Completed";
     }
 
-    async function getTrack() {
-        const trackDetailsData = await getDoc(doc(db, `albums/${$page.params.trackId}`));
+    async function getTrack(params) {
+        const trackDetailsData = await getDoc(doc(db, `albums/${params.trackId}`));
         trackDetails = trackDetailsData.data();
+        return "Completed";
     }
+
+    async function loginToFirebase(params) {
+        const reviewDoc = await getDoc(doc(db, `albums/${params.trackId}/reviews/${params.id}`));
+        if (reviewDoc.exists()) {
+            reviewExists = true;
+            reviewLikes = reviewDoc.data().likes;
+        } else {
+            throw new Error("Review does not exist");
+        }
+        return "Completed";
+    }
+</script>
+
+<script>
+	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
+	import Review from './../../../../components/Review.svelte';
+	import Comments from './../../../../components/Comments.svelte';
+	import { page } from '$app/stores';
+    import { v4 as uuidv4 } from "uuid";
+import Seo from '../../../../components/SEO.svelte';
+
+    export let reviewExists = false;
+    export let reviewDetails = {};
+    export let trackDetails;
+    export let reviewLikes = [];
 </script>
 
 <div class="mx-6">

@@ -1,3 +1,49 @@
+<script context="module">
+    import { auth, db } from "../../firebase.js";
+    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
+
+    let userLoaded = false;
+    let labelData;
+    let invalidUser = true;
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                userLoaded,
+                labelData,
+                invalidUser,
+            }
+        }
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            invalidUser = false;
+        }
+
+        const labelDataDocument = await getDoc(doc(db, `labels/${params.id}`));
+        if (labelDataDocument.exists()) {
+            labelData = labelDataDocument.data();
+            return "Completed";
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+</script>
+
 <script>
 	import Dropdown from './../../components/Dropdown.svelte';
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
@@ -15,16 +61,14 @@
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { onMount } from "svelte";
-    import { auth, db } from "../../firebase.js";
     import DOMPurify from "isomorphic-dompurify";
-import { get } from 'svelte/store';
+    import { get } from 'svelte/store';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
-    let userLoaded = false;
-    let labelData = {};
+    export let invalidUser;
+    export let labelData = {};
     let changeMode = false;
     let biographyCollapsed = false;
     let hideModal = true;
@@ -59,58 +103,30 @@ import { get } from 'svelte/store';
         }
     })
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            const labelDataDocument = await getDoc(doc(db, `labels/${$page.params.id}`));
-            if (labelDataDocument.exists()) {
-                labelData = labelDataDocument.data();
-                if (labelData?.photoHref) {
-                    photoHref = labelData?.photoHref;
-                }
-                editBiography = labelData?.biography;
-                websiteLink = labelData?.websiteHref;
-                youtubeLink = labelData?.youtubeHref;
-                twitterLink = labelData?.twitterHref;
-                instagramLink = labelData?.instagramHref;
-                facebookLink = labelData?.facebookHref;
-
-                const allTracksRef = collection(db, type);
-                const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
-                const allTracks = await getDocs(allTracksQuery);
-
-                lastVisible = allTracks.docs[allTracks.docs.length - 1];
-                currentLabelSize = allTracks.docs.length;
-
-                allTracks.forEach((doc) => {
-                    addToTracks({
-                        data: doc.data(),
-                        id: doc.id,
-                    });
-                });
-            } else {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
+        if (labelData?.photoHref) {
+            photoHref = labelData?.photoHref;
         }
+        editBiography = labelData?.biography;
+        websiteLink = labelData?.websiteHref;
+        youtubeLink = labelData?.youtubeHref;
+        twitterLink = labelData?.twitterHref;
+        instagramLink = labelData?.instagramHref;
+        facebookLink = labelData?.facebookHref;
+
+        const allTracksRef = collection(db, type);
+        const allTracksQuery = query(allTracksRef, where("labelNames", "array-contains-any", [labelData?.name]), orderBy(sortBy, ascOrDesc), limit(9));
+        const allTracks = await getDocs(allTracksQuery);
+
+        lastVisible = allTracks.docs[allTracks.docs.length - 1];
+        currentLabelSize = allTracks.docs.length;
+
+        allTracks.forEach((doc) => {
+            addToTracks({
+                data: doc.data(),
+                id: doc.id,
+            });
+        });
     }
 
     async function paginateData() {
@@ -282,7 +298,10 @@ import { get } from 'svelte/store';
                     {/if}
                 </div>
             {/if}
-            <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            
+            {#if !invalidUser}
+                <button class="text-xs my-6 opacity-10 transition-all hover:opacity-100 self-start" on:click={enterChangeMode}>Change</button>
+            {/if}
         </div>
         <div class="content basis-4/5 pr-14">
             <div class="flex justify-between">

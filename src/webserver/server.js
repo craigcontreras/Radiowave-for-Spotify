@@ -25,7 +25,7 @@ const redirect = "https://radiowave.app/callback";
 //middleware
 app.use(cookieParser()); //parses all cookies incoming from requests
 app.use(express.json()); //parses all headers into json that are intended as json but not formatted in json
-app.use(prerender.set('prerenderToken', 'rCgpsgWBD1pqJ1kMfX0M'));
+// app.use(prerender.set('prerenderToken', 'rCgpsgWBD1pqJ1kMfX0M'));
 
 //initialize firebase admin sdk
 initializeApp({
@@ -204,6 +204,7 @@ app.get("/callback", (req, res) => {
                         id: artist.id,
                         name: artist.name,
                         image: artist.images[1].url,
+                        genres: artist.genres,
                     });
                     artistsFourWeeksFullData = artistsFourWeeksFullData;
                 }
@@ -225,6 +226,7 @@ app.get("/callback", (req, res) => {
                         id: artist.id,
                         name: artist.name,
                         image: artist.images[1].url,
+                        genres: artist.genres,
                     });
                     artistsSixMo = artistsSixMo;
                 }
@@ -246,6 +248,7 @@ app.get("/callback", (req, res) => {
                         id: artist.id,
                         name: artist.name,
                         image: artist.images[1].url,
+                        genres: artist.genres,
                     });
                     artistsLifetime = artistsLifetime;
                 }

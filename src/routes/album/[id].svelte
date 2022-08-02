@@ -1,6 +1,114 @@
 <script context="module">
-    export async function load() {
-        await loginToFirebase();
+	import SEO from './../../components/SEO.svelte';
+    import axios from "axios";
+    import { db, auth } from "../../firebase.js";
+    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, where } from "firebase/firestore";
+
+    let userDoc;
+    let userAccessToken;
+    let userRefreshToken;
+    let albumDocument;
+    let userLoaded = false;
+    let userId;
+    let invalidUser = true;
+    let refreshed = 0;
+    let albumData;
+    let initialLoadData = [];
+
+    export async function load({params}) {
+        initialLoadData = [];
+        await loginToFirebase(params);
+
+        if (!albumDocument.exists()) {
+            await initialLoad(userAccessToken, userRefreshToken, params);
+        }
+
+        return {
+            props: {
+                userId,
+                albumDocument,
+                userLoaded,
+                initialLoadData,
+                albumData,
+                invalidUser
+            }
+        }
+    }
+
+    function getCurrentUser() {
+        return new Promise((resolve, reject) => {
+            if (userLoaded) {
+                resolve(auth.currentUser);
+            }
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                userLoaded = true;
+                unsubscribe();
+                resolve(user);
+            }, reject);
+        });
+    }
+
+    async function initialLoad(userAccessToken, userRefreshToken, params) {        
+        try {
+            const request = await axios.get(`https://api.spotify.com/v1/albums/${params.id}`, {
+                headers: {
+                    Authorization: `Bearer ${userAccessToken}`
+                }
+            });
+            if (refreshed > 1) {
+                throw new Error("Timed out");
+            } else {
+                initialLoadData = request.data;
+            }
+            return "Completed";
+        } catch (err) {
+            if (err?.response?.status === 400) {
+                throw new Error("400 err from spotify");
+            }
+            if (refreshed < 1) {
+                const searchParams = new URLSearchParams();
+                searchParams.append("grant_type", "refresh_token");
+                searchParams.append("refresh_token", userRefreshToken);
+                searchParams.append("client_id", id);
+                axios.post("https://accounts.spotify.com/api/token", searchParams, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                }).then(async (spotifyData) => {
+                    const newAccess = spotifyData.data.access_token;
+                    const newRefresh = spotifyData.data.refresh_token;
+                    await setDoc(doc(db, `users/${userId}`), {
+                        access: newAccess,
+                        refresh: newRefresh
+                    }, {
+                        merge: true
+                    });
+                    refreshed++;
+                    initialLoad(newAccess, newRefresh, params);
+                }).catch(err => {
+                    refreshed++;
+                });
+            } else {
+                throw new Error("Timed out");
+            }
+        }
+    }
+
+    async function loginToFirebase(params) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            invalidUser = false;
+            userId = user.uid;
+            userDoc = await getDoc(doc(db, `users/${user.uid}`));
+            userAccessToken = userDoc.data().access;
+            userRefreshToken = userDoc.data().refresh;
+        }
+        
+        albumDocument = await getDoc(doc(db, `albums/${params.id}`));
+        if (albumDocument.exists()) {
+            albumData = albumDocument.data();
+        }
+        return "Completed";
     }
 </script>
 
@@ -9,10 +117,7 @@
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
-    import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, where } from "firebase/firestore";
     import { onMount } from "svelte";
-    import { db, auth } from "../../firebase.js";
-    import axios from 'axios';
     import Rating from '../../components/Rating.svelte';
     import Icon from 'svelte-awesome';
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
@@ -25,10 +130,10 @@
     import Comments from '../../components/Comments.svelte';
     import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
     import { get } from 'svelte/store';
+import Seo from '../../components/SEO.svelte';
 
-    let userLoaded = false;
-    let albumData;
-    let userId = "";
+    export let albumData;
+    export let userId = "";
 
     let hide = false;
     let detailElement;
@@ -70,7 +175,6 @@
     let tracks = [];
     let hideModalWriters = true;
 
-    let refreshed = 0;
     let commentCollapsed = true;
     let moreTracksByArtist = [];
     let moreTracks = [];
@@ -80,6 +184,9 @@
 
     let thumbnailElement;
     let primaryColor = "";
+    
+    export let invalidUser;
+    export let initialLoadData;
 
     let options = {
         chart: {
@@ -114,17 +221,26 @@
 
     const {userAgent} = get(session);
 
+    export let albumDocument;
+
     onMount(async () => {
+        loginToFirebase();
         const { chart } = await import("svelte-apexcharts");
         chartMethod = chart;
         chartLoaded = true;
 
         const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
-        thumbnailElement.addEventListener("load", () => {
+        if (thumbnailElement.complete) {
             Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
                 primaryColor = palette.DarkVibrant.getHex();
             });
-        });
+        } else {
+            thumbnailElement.addEventListener("load", () => {
+                Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
+                    primaryColor = palette.DarkVibrant.getHex();
+                });
+            });
+        }
 
         if (browser) {
             const observer = new IntersectionObserver(entries => {
@@ -142,273 +258,211 @@
         }
     });
 
-    function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            if (userLoaded) {
-                resolve(auth.currentUser);
-            }
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                userLoaded = true;
-                unsubscribe();
-                resolve(user);
-            }, reject);
-        });
-    }
-
-    function initialLoad(userAccessToken, userRefreshToken) {
-        const spotifyAlbum = axios.get(`https://api.spotify.com/v1/albums/${$page.params.id}`, {
-            headers: {
-                Authorization: `Bearer ${userAccessToken}`
-            }
-        }).then(async (res) => {
+    async function getInitialLoad() {
+        if (initialLoadData) {
             let isSingle = false;
-            if (res.data.album_type === "single" && res.data.total_tracks < 4) {
+            if (initialLoadData.album_type === "single" && initialLoadData.total_tracks < 4) {
                 isSingle = true;
             }
 
-            if (refreshed > 1) {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-                return;
-            } else {
-                const date = new Date(res.data.release_date);
-                for (let track of res.data.tracks.items) {
-                    tracks.push({
-                        duration: track.duration_ms,
-                        id: track.id,
-                        name: track.name,
-                        track_number: track.track_number,
-                    });
-                    tracks = tracks;
-                }
-
-                albumData = {
-                    album_type: res.data.album_type,
-                    total_tracks: res.data.total_tracks,
-                    external_urls: res.data.external_urls.spotify,
-                    id: res.data.id,
-                    images: res.data.images,
-                    name: res.data.name,
-                    release_date: date,
-                    artists: res.data.artists,
-                    primary_artist: res.data.artists[0].name,
-                    tracks,
-                    avgRating: 0,
-                    numRatings: 0,
-                    year: date.getFullYear() || 0,
-                    month: date.getMonth() || 0,
-                    day: date.getDate() || 0,
-                    label: [],
-                    producers: [],
-                    writers: [],
-                    genre: [],
-                    labelNames: [],
-                    genreNames: [],
-                    producerNames: [],
-                    writerNames: [],
-                    isSingle,
-                };
-
-                await setDoc(doc(db, `albums/${$page.params.id}`), albumData);
-                releaseDate = date;
-                publicLabels = albumData?.label;
-                labelsForQuerying = albumData?.labelNames;
-                publicGenres = albumData?.genre;
-                genresForQuerying = albumData?.genreNames;
-                publicProducers = albumData?.producers;
-                producersForQuerying = albumData?.producerNames;
-                publicWriters = albumData?.writers;
-                writersForQuerying = albumData?.writerNames;
-                findMoreAlbumsByArtist();
-                findMoreAlbums();
-            }
-        }).catch(err => {
-            if (err?.response?.status === 400) {
-                if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                    // goto("/error");
-                }
-                return;
-            }
-            if (refreshed < 1) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", userRefreshToken);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then(async (spotifyData) => {
-                    const newAccess = spotifyData.data.access_token;
-                    const newRefresh = spotifyData.data.refresh_token;
-                    await setDoc(doc(db, `users/${userId}`), {
-                        access: newAccess,
-                        refresh: newRefresh
-                    }, {
-                        merge: true
-                    });
-                    refreshed++;
-                    initialLoad(newAccess, newRefresh);
-                }).catch(err => {
-                    refreshed++;
+            const date = new Date(initialLoadData.release_date);
+            for (let track of initialLoadData.tracks.items) {
+                tracks.push({
+                    duration: track.duration_ms,
+                    id: track.id,
+                    name: track.name,
+                    track_number: track.track_number,
                 });
+                tracks = tracks;
             }
-        });
+
+            albumData = {
+                album_type: initialLoadData.album_type,
+                total_tracks: initialLoadData.total_tracks,
+                external_urls: initialLoadData.external_urls.spotify,
+                id: initialLoadData.id,
+                images: initialLoadData.images,
+                name: initialLoadData.name,
+                release_date: date,
+                artists: initialLoadData.artists,
+                primary_artist: initialLoadData.artists[0].name,
+                tracks,
+                avgRating: 0,
+                numRatings: 0,
+                year: date.getFullYear() || 0,
+                month: date.getMonth() || 0,
+                day: date.getDate() || 0,
+                label: [],
+                producers: [],
+                writers: [],
+                genre: [],
+                labelNames: [],
+                genreNames: [],
+                producerNames: [],
+                writerNames: [],
+                isSingle,
+            };
+
+            await setDoc(doc(db, `albums/${$page.params.id}`), albumData);
+            releaseDate = date;
+            publicLabels = albumData?.label;
+            labelsForQuerying = albumData?.labelNames;
+            publicGenres = albumData?.genre;
+            genresForQuerying = albumData?.genreNames;
+            publicProducers = albumData?.producers;
+            producersForQuerying = albumData?.producerNames;
+            publicWriters = albumData?.writers;
+            writersForQuerying = albumData?.writerNames;
+            findMoreAlbumsByArtist();
+            findMoreAlbums();
+        }
     }
 
     async function loginToFirebase() {
-        const user = await getCurrentUser();
-        if (user !== null) {
-            userId = user.uid;
-            const userDoc = await getDoc(doc(db, `users/${user.uid}`));
-            const userAccessToken = userDoc.data().access;
-            const userRefreshToken = userDoc.data().refresh;
-            const albumDocument = await getDoc(doc(db, `albums/${$page.params.id}`));
-
-            if (!albumDocument.exists()) {
-                initialLoad(userAccessToken, userRefreshToken);
+        if (!albumDocument.exists()) {
+            if (!invalidUser) {
+                getInitialLoad();
             } else {
-                albumData = albumDocument.data();
-                tracks = albumData?.tracks;
-                releaseDate = albumData.release_date.toDate();
-                publicLabels = albumData?.label;
-                labelsForQuerying = albumData?.labelNames;
-                publicGenres = albumData?.genre;
-                genresForQuerying = albumData?.genreNames;
-                publicProducers = albumData?.producers;
-                producersForQuerying = albumData?.producerNames;
-                publicWriters = albumData?.writers;
-                writersForQuerying = albumData?.writerNames;
-                if (albumData?.avgRating >= 0 && albumData?.avgRating < 50) {
-                    ratingColor = "bg-red-600";
-                } else if (albumData?.avgRating >= 50 && albumData?.avgRating < 70) {
-                    ratingColor = "bg-yellow-400";
-                } else if (albumData?.avgRating >= 70 && albumData?.avgRating <= 100) {
-                    ratingColor = "bg-green-600";
-                }
-                findMoreAlbumsByArtist();
-                findMoreAlbums();
+                throw new Error("Page is not generated and user is not logged in");
             }
-            
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
-            const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
-            const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
-            await setDoc(doc(db, `albums/${$page.params.id}/counter/${date}`), {
-                pageViews: increment(1),
-                date: dateObj,
-            }, {
-                merge: true
+        } else {
+            tracks = albumData?.tracks;
+            releaseDate = albumData.release_date.toDate();
+            publicLabels = albumData?.label;
+            labelsForQuerying = albumData?.labelNames;
+            publicGenres = albumData?.genre;
+            genresForQuerying = albumData?.genreNames;
+            publicProducers = albumData?.producers;
+            producersForQuerying = albumData?.producerNames;
+            publicWriters = albumData?.writers;
+            writersForQuerying = albumData?.writerNames;
+            if (albumData?.avgRating >= 0 && albumData?.avgRating < 50) {
+                ratingColor = "bg-red-600";
+            } else if (albumData?.avgRating >= 50 && albumData?.avgRating < 70) {
+                ratingColor = "bg-yellow-400";
+            } else if (albumData?.avgRating >= 70 && albumData?.avgRating <= 100) {
+                ratingColor = "bg-green-600";
+            }
+            findMoreAlbumsByArtist();
+            findMoreAlbums();
+        }
+        
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+        const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+        const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+        await setDoc(doc(db, `albums/${$page.params.id}/counter/${date}`), {
+            pageViews: increment(1),
+            date: dateObj,
+        }, {
+            merge: true
+        });
+
+        let statisticsData = {};
+        
+        if (albumData?.isSingle) {
+            statisticsData["type"] = "track";
+        } else {
+            statisticsData["type"] = "album";
+        }
+        statisticsData[date] = increment(1);
+
+        await setDoc(doc(db, `statistics/${$page.params.id}`), statisticsData, {
+            merge: true
+        });
+
+        const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
+        range.forEach(date => {
+            dates.push(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);    
+            dates = dates;
+            views.push({
+                x: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+                y: 0
             });
+        });
 
-            await setDoc(doc(db, `statistics/${$page.params.id}`), {
-                views: increment(1),
-            }, {
-                merge: true
+        const counterRef = collection(db, `albums/${$page.params.id}/counter`);
+        const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
+        const counterDocs = await getDocs(counterQuery);
+
+        counterDocs.forEach((doc, index) => {
+            remove(views, (obj) => {
+                return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
+            })
+            views.push({
+                x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
+                y: doc.data().pageViews
             });
+            // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
+        });
 
-            const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
-            range.forEach(date => {
-                dates.push(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);    
-                dates = dates;
-                views.push({
-                    x: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-                    y: 0
-                });
-            });
-
-            const counterRef = collection(db, `albums/${$page.params.id}/counter`);
-            const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
-            const counterDocs = await getDocs(counterQuery);
-
-            counterDocs.forEach((doc, index) => {
-                remove(views, (obj) => {
-                    return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
-                })
-                views.push({
-                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
-                    y: doc.data().pageViews
-                });
-                // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
-            });
-
-            options = {
-                chart: {
-                    type: "area",
-                    toolbar: {
-                        show: false,
-                    },
-                    zoom: {
-                        enabled: false,
-                    },
-                    height: "85%",
-                    width: "100%",
-                },
-                dataLabels: {
-                    enabled: false,  
-                },
-                grid: {
+        options = {
+            chart: {
+                type: "area",
+                toolbar: {
                     show: false,
                 },
-                yaxis: {
-                    axisTicks: {
-                        show: false,
-                    },
-                    labels: {
-                        show: false,
-                    },
-                    forceNiceScale: true,
+                zoom: {
+                    enabled: false,
                 },
-                xaxis: {
-                    axisTicks: {
-                        show: false,
-                    },
-                    labels: {
-                        show: false,
-                    },
-                    categories: dates,
+                height: "85%",
+                width: "100%",
+            },
+            dataLabels: {
+                enabled: false,  
+            },
+            grid: {
+                show: false,
+            },
+            yaxis: {
+                axisTicks: {
+                    show: false,
                 },
-                stroke: {
-                    show: true,
-                    curve: "straight",
-                    lineCap: "round",
-                    width: 4,
+                labels: {
+                    show: false,
                 },
-                fill: {
-                    type: "gradient",
-                    gradient: {
-                        shadeIntensity: 0.75,
-                        opacityFrom: 1,
-                        opacityTo: 0.25,
-                        stops: [0],
-                        type: "vertical",
-                    }
+                forceNiceScale: true,
+            },
+            xaxis: {
+                axisTicks: {
+                    show: false,
                 },
-                tooltip: {
-                    marker: {
-                        show: false,
-                    },
-                    x: {
-                        show: false,
-                    },
-                    theme: "dark"
+                labels: {
+                    show: false,
                 },
-                series: [
-                    {
-                        name: "views",
-                        data: views,
-                    }
-                ],
-            };
-
-            return "Completed";
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
-
-            throw new Error("Fuck");
-         }
+                categories: dates,
+            },
+            stroke: {
+                show: true,
+                curve: "straight",
+                lineCap: "round",
+                width: 4,
+            },
+            fill: {
+                type: "gradient",
+                gradient: {
+                    shadeIntensity: 0.75,
+                    opacityFrom: 1,
+                    opacityTo: 0.25,
+                    stops: [0],
+                    type: "vertical",
+                }
+            },
+            tooltip: {
+                marker: {
+                    show: false,
+                },
+                x: {
+                    show: false,
+                },
+                theme: "dark"
+            },
+            series: [
+                {
+                    name: "views",
+                    data: views,
+                }
+            ],
+        };
     }
 
     function enterChangeMode() {
@@ -646,6 +700,8 @@
     }
 </script>
 
+<Seo title="{albumData?.artists[0].name} - {albumData?.name} - Reviews - Radiowave for Spotify" image={albumData?.cardPreview} description="Information, ratings, reviews of {albumData?.name} by {albumData?.artists[0]?.name}"/>
+
 <Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
     {#each publicLabels as label}
         <a href="/{label.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white">{label.text}</a>
@@ -705,7 +761,9 @@
             <div class:hidden={albumData?.isSingle} class="details my-8 mr-6 float-right basis-2/5">
                 <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black detail-box">
                     <h2 class="italic inline text-gray-400">TRACK DETAILS</h2>
-                    <button class="float-right inline" on:click={enterChangeMode}>Change</button>
+                    {#if !invalidUser}
+                        <button class="float-right inline" on:click={enterChangeMode}>Change</button>
+                    {/if}
                     <div class="w-full bg-gray-700 h-0.5"></div>
                     <p><span class="italic text-gray-400 pr-1">date</span> {releaseDate?.getUTCFullYear()}-{releaseDate?.getUTCMonth() + 1}-{releaseDate?.getUTCDate()}</p>
                     <form action="" on:submit|preventDefault={async () => {

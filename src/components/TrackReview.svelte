@@ -25,6 +25,7 @@ import { session } from '$app/stores';
     let currUserReview = "";
     let currUserRating = 0;
     let userLoaded = false;
+    let invalidUser = true;
 
     const allTrackReviews = [];
     const {userAgent} = get(session);
@@ -75,6 +76,7 @@ import { session } from '$app/stores';
     async function loginToFirebase() {
         const user = await getCurrentUser();
         if (user !== null) {
+            invalidUser = false;
             const allTracksRef = collection(db, fromCollection);
             const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"), limit(5));
             const allTracks = await getDocs(allTracksQuery);
@@ -91,10 +93,6 @@ import { session } from '$app/stores';
                     currUserRating = doc.data().rating;
                 }
             });
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
-            }
         }
     }
 
@@ -161,6 +159,7 @@ import { session } from '$app/stores';
     }
 </script>
 
+{#if !invalidUser}
 <div class="my-4" id="current-user-review">
     {#if currUserHasReview}
         <h2>Your review</h2>
@@ -184,6 +183,9 @@ import { session } from '$app/stores';
         {/if}
     </form>
 </div>
+{:else}
+    <p>Please log in to review.</p>
+{/if}
 
 <!-- Display every review -->
 
