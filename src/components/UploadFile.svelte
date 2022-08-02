@@ -183,10 +183,10 @@
                 }, 5000);
             }
         }} for="file-upload">
-        <div class:bg-slate-600={itemDrag} class="transition-all hover:-translate-y-1 border-2 rounded-lg border-slate-700 border-dashed w-full h-40 flex flex-col items-center justify-center">
-            <p class="text-slate-700">Click or drag your image into this box</p>
-            <p class="text-slate-700">File uploaded: {fileName}</p>
-            <p class="text-slate-700">Supports .jpeg, .jpg, .png</p>
+        <div class:bg-stone-700={itemDrag} class="transition-all hover:-translate-y-1 border-2 rounded-lg border-stone-800 border-dashed w-full h-40 flex flex-col items-center justify-center">
+            <p class="text-stone-800">Click or drag your image into this box</p>
+            <p class="text-stone-800">File uploaded: {fileName}</p>
+            <p class="text-stone-800">Supports .jpeg, .jpg, .png</p>
             {#if displayError}
                 <p transition:slide class="text-error">You can only upload .jpeg or .png files and only one file.</p>
             {/if}
@@ -205,7 +205,7 @@
         fileName = file.name;
     }} id="file-upload" class="hidden" type="file" accept="image/png,image/jpeg" bind:this={fileElement}>
     {#if !startedUpload && !hideFileUpload}
-        <button class:-z-50={startedUpload} transition:slide class="transition-all hover:-translate-y-1 block float-right mt-6 py-4 px-6 bg-slate-700 rounded-lg drop-shadow-xl" type="submit">Upload</button>
+        <button class:-z-50={startedUpload} transition:slide class="transition-all hover:-translate-y-1 block float-right mt-6 py-4 px-6 bg-stone-800 rounded-lg drop-shadow-xl" type="submit">Upload</button>
     {/if}
 </form>
 

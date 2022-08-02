@@ -163,8 +163,8 @@
                 </span>
                 <h2 class="text-2xl break-words text-center font-black mt-4">{userData?.displayName}</h2>
             </span>
-            <button class="transition-all hover:text-white hover:bg-slate-700 hover:-translate-y-1 border-2 text-slate-400 border-slate-700 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
-            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+            <button class="transition-all hover:text-white hover:bg-stone-800 hover:-translate-y-1 border-2 border-stone-800 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIO</h2>
                 <button class="float-right inline" on:click={() => {
                     biographyCollapsed = !biographyCollapsed;
@@ -185,7 +185,7 @@
                                 }
                             }}>
                                 <textarea class="w-full bg-transparent" bind:value={editBiography} name="" id="" cols="30" rows="10"></textarea>
-                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                             </form>
                         {:else}
                             <div id="biography">{@html marked(sanitizedBiography)}</div>
@@ -195,7 +195,7 @@
             </div>
 
             {#if changeMode}
-                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                     <h2 class="italic inline text-gray-400">SOCIALS</h2>
                     <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
                     <form action="" on:submit|preventDefault={async () => {
@@ -233,7 +233,7 @@
                             <label class="inline-block align-middle" for="website"><Icon data={faGlobe}/></label>
                             <input id="website" bind:value={websiteLink} placeholder="website link" class="ml-1 inline-block align-middle w-5/6 bg-transparent" type="text">
                         </div>
-                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                     </form>
                 </div>
             {/if}
@@ -286,13 +286,13 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-4xl inline-block font-black">Top tracks</h2>
                     <div class="inline-block">
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
                             dateRange = "short_term";
                         }}>past 4 weeks</button>
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all" on:click={() => {
                             dateRange = "medium_term";
                         }}>past 6 months</button>
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
                             dateRange = "long_term";
                         }}>lifetime</button>
                     </div>
@@ -346,13 +346,13 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-4xl inline-block font-black">Top artists</h2>
                     <div class="inline-block">
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
                             dateRangeArtists = "short_term";
                         }}>past 4 weeks</button>
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all" on:click={() => {
                             dateRangeArtists = "medium_term";
                         }}>past 6 months</button>
-                        <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
                             dateRangeArtists = "long_term";
                         }}>lifetime</button>
                     </div>

@@ -28,11 +28,11 @@
 </script>
 
 <ul class="{classes} max-w-[10rem] break-all w-40 text-sm drop-shadow-xl">
-    <li class:hidden={hideTypeaheadCreate} on:click={createDocument} class="cursor-pointer hover:bg-slate-600 m-0 p-2 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Create "{currentLabelText}"</li>
+    <li class:hidden={hideTypeaheadCreate} on:click={createDocument} class="cursor-pointer hover:bg-stone-900 m-0 p-2 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Create "{currentLabelText}"</li>
     {#each items as item}
         <li on:click={() => {
             sendSelectedInput(item.displayName, item.id);
-        }} class="cursor-pointer hover:bg-slate-600 m-0 p-2 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">{item.displayName}</li>
+        }} class="cursor-pointer hover:bg-stone-900 m-0 p-2 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">{item.displayName}</li>
     {/each}
 </ul>
 

@@ -8,7 +8,7 @@
 </script>
 
 <!-- Add a max width to all of the text so it doesn't overflow or smush the image -->
-<div class="hover:-translate-y-1 transition-all drop-shadow-lg mt-6 mb-6 p-4 rounded-lg bg-gray-800">
+<div class="hover:-translate-y-1 transition-all drop-shadow-lg mt-6 mb-6 p-4 rounded-lg bg-black">
     {#await getDoc(doc(db, `users/${commentAuthor}`))}
         <a href="/user/{commentAuthor}"><p class="text-xl font-bold">{commentAuthor}</p></a>
     {:then data}

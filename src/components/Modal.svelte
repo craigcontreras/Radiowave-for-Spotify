@@ -6,11 +6,11 @@
     export let header = "";
 </script>
 
-<div class:hidden={hideModal} class="bg-grey-900 fixed top-0 left-0 z-50 w-full h-full flex items-center justify-center p-8">
+<div class:hidden={hideModal} class="fixed top-0 left-0 z-50 w-full h-full flex items-center justify-center p-8">
     <div on:click={() => {
         hideModal = true;
-    }} class="bg-gray-900 opacity-50 fixed w-full h-full"></div>
-    <div class="bg-slate-800 h-full w-1/2 mx-auto rounded-lg drop-shadow-xl z-50 overflow-y-auto">
+    }} class="bg-stone-900 opacity-50 fixed w-full h-full"></div>
+    <div class="bg-black h-full w-1/2 mx-auto rounded-lg drop-shadow-xl z-50 overflow-y-auto">
         <div class="header flex justify-between items-center py-5 px-8">
             <h2 class="text-2xl font-extrabold">{header}</h2>
             <button id="close" on:click={() => {

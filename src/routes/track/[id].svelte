@@ -894,25 +894,25 @@ import Seo from '../../components/SEO.svelte';
 
 <Modal header="All genres" bind:hideModal={hideModalGenres}><svelte:fragment slot="body">
     {#each publicGenre as genre}
-        <a href="/{genre.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{genre.text}</a>
+        <a href="/{genre.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white pl-1">{genre.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
     {#each publicLabels as label}
-        <a href="/{label.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{label.text}</a>
+        <a href="/{label.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white pl-1">{label.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All producers" bind:hideModal={hideModalProducers}><svelte:fragment slot="body">
     {#each publicProducers as producer}
-        <a href="/{producer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{producer.text}</a>
+        <a href="/{producer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white pl-1">{producer.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All writers" bind:hideModal={hideModalWriters}><svelte:fragment slot="body">
     {#each publicWriters as writer}
-        <a href="/{writer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white pl-1">{writer.text}</a>
+        <a href="/{writer.id}" class="drop-shadow-xl hover:-translate-y-[0.10rem] transition-all block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white pl-1">{writer.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
@@ -1104,7 +1104,7 @@ import Seo from '../../components/SEO.svelte';
                         {/each}
                         <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
                     </p>  
-                    <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
+                    <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-stone-800" class:hidden={!inChangeMode}>Submit</button>
                 </form>
             </div>
             {#if chartLoaded}
@@ -1158,7 +1158,7 @@ import Seo from '../../components/SEO.svelte';
 
 <div class="mx-6">
     <h2 class="text-4xl align-middle font-black inline">Shoutbox</h2>
-    <button class="ml-4 px-2 py-1 bg-slate-700 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
+    <button class="ml-4 px-2 py-1 bg-stone-800 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
     {#if !commentCollapsed}
         <div class="mt-4" transition:slide>
             <Comments fromCollection={`tracks/${$page.params.id}/comments`} fromDoc={`tracks/${$page.params.id}/comments/${uuidv4()}`}/>
@@ -1171,19 +1171,19 @@ import Seo from '../../components/SEO.svelte';
 <div class="mx-6" id="track-analysis-features">
     <h2 class="text-4xl font-black mb-4">Analysis & Features</h2>
     <div class="grid grid-flow-row-dense grid-cols-3 gap-4">
-        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="tempo">
+        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="tempo">
             <h2 class="text-4xl font-black">{Math.round(trackData?.analysis?.tempo)} bpm</h2>
             <p class="font-bold">Tempo</p>
         </div>
-        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="time-signature">
+        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="time-signature">
             <h2 class="text-4xl font-black">{trackData?.analysis?.time_signature}/4</h2>
             <p class="font-bold">Time Signature</p>
         </div>
-        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="key">
+        <div class="text-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="key">
             <h2 class="text-4xl font-black">{key}</h2>
             <p class="font-bold">Key</p>
         </div>
-        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="danceability">
+        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="danceability">
             <h2 class="text-4xl mb-1 font-black">{Math.round(trackData?.features?.danceability * 100)}%</h2>
             <div class="w-8/12 bg-gray-200 h-1">
                 <div class="bg-blue-600 h-1" style="width: {trackData?.features?.danceability * 100}%"></div>
@@ -1191,7 +1191,7 @@ import Seo from '../../components/SEO.svelte';
             <p class="font-bold mt-1">Danceability</p>
             <p class="italic text-sm font-semibold">{danceability}</p>
         </div>
-        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="energy">
+        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="energy">
             <h2 class="text-4xl mb-1 font-black">{Math.round(trackData?.features?.energy * 100)}%</h2>
             <div class="w-8/12 bg-gray-200 h-1">
                 <div class="bg-blue-600 h-1" style="width: {trackData?.features?.energy * 100}%"></div>
@@ -1199,7 +1199,7 @@ import Seo from '../../components/SEO.svelte';
             <p class="font-bold mt-1">Energy</p>
             <p class="italic text-sm font-semibold">{energy}</p>
         </div>
-        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800" id="valence">
+        <div class="flex flex-col items-center justify-center transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-stone-900" id="valence">
             <h2 class="text-4xl mb-1 font-black">{Math.round(trackData?.features?.valence * 100)}%</h2>
             <div class="w-8/12 bg-gray-200 h-1">
                 <div class="bg-blue-600 h-1" style="width: {trackData?.features?.valence * 100}%"></div>

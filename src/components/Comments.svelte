@@ -126,7 +126,7 @@
         <Comment commentMessage={comment.comment} commentAuthor={comment.author} commentDate={comment.timestamp}/>
     {/each}
     {#if currentCommentSize >= 5}
-        <button class="text-center py-4 px-8 bg-slate-700 hover:-translate-y-1 drop-shadow-lg rounded-lg transition-all" on:click={paginateData}>Load more comments</button>
+        <button class="text-center py-4 px-8 bg-black hover:-translate-y-1 drop-shadow-lg rounded-lg transition-all" on:click={paginateData}>Load more comments</button>
     {/if}
 </div>
 

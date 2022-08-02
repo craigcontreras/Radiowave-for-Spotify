@@ -406,7 +406,7 @@
                 <h2 class="text-2xl break-words text-center font-black mt-4">{artistData?.name}</h2>
             </span>
 
-            <div class="genres z-50 w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+            <div class="genres z-50 w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">GENRES</h2>
                 <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
                 <form action="" on:submit|preventDefault={async () => {
@@ -419,15 +419,15 @@
                 }}>
                     <p class="italic mt-2 text-gray-400">genre
                         {#if publicGenres.length > 3}
-                            <a href="/{publicGenres[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[0].text}</a>
-                            <a href="/{publicGenres[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[1].text}</a>
-                            <a href="/{publicGenres[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[2].text}</a>
+                            <a href="/{publicGenres[0].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[0].text}</a>
+                            <a href="/{publicGenres[1].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[1].text}</a>
+                            <a href="/{publicGenres[2].id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{publicGenres[2].text}</a>
                             <button type="button" class="italic" class:hidden={changeMode} on:click|preventDefault={() => {
                                 hideModalGenres = !hideModalGenres;
                             }}>view all</button>
                         {:else}
                             {#each publicGenres as genre}
-                                <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-slate-700 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{genre.text}</a>
+                                <a href="/{genre.id}" class="first:ml-1 mt-2 py-1 text-center px-2 bg-stone-900 rounded-lg mr-1 not-italic text-white pl-1" class:hidden={changeMode}>{genre.text}</a>
                             {/each}
                         {/if}
 
@@ -443,15 +443,15 @@
                                     });
                                     proposedGenres = proposedGenres;
                                     genresForQuerying = newArr;
-                                }} class="px-2 py-1 ml-1 rounded-full bg-slate-800">x</button>
+                                }} class="px-2 py-1 ml-1 rounded-full bg-stone-800">x</button>
                             </span>
                         {/each}
                         <InputWithTypeahead collectionType="genres" on:handleTypeaheadCreation={handleTypeaheadCreationForGenres} bind:hideTypeaheadCreate={hideTypeaheadCreateForGenres} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForGenres} bind:currentLabelText={currentGenreText} inChangeMode={changeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForGenres} bind:autocompleteResults={autocompleteResultsForGenres}/>     
                     </p>
-                    <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!changeMode}>Submit</button>
+                    <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-stone-800" class:hidden={!changeMode}>Submit</button>
                 </form>
             </div>
-            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIOGRAPHY</h2>
                 <button class="float-right inline" on:click={() => {
                     biographyCollapsed = !biographyCollapsed;
@@ -472,7 +472,7 @@
                                 }
                             }}>
                                 <textarea class="w-full bg-transparent" bind:value={editBiography} name="" id="" cols="30" rows="10"></textarea>
-                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                             </form>
                         {:else}
                             <div id="biography">{@html marked(sanitizedBiography)}</div>
@@ -482,7 +482,7 @@
             </div>
 
             {#if changeMode}
-                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                     <h2 class="italic inline text-gray-400">SOCIALS</h2>
                     <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
                     <form action="" on:submit|preventDefault={async () => {
@@ -520,7 +520,7 @@
                             <label class="inline-block align-middle" for="website"><Icon data={faGlobe}/></label>
                             <input id="website" bind:value={websiteLink} placeholder="website link" class="ml-1 inline-block align-middle w-5/6 bg-transparent" type="text">
                         </div>
-                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                     </form>
                 </div>
             {/if}

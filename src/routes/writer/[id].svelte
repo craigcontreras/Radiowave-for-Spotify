@@ -183,13 +183,13 @@ import { get } from 'svelte/store';
                     <img on:click={() => {
                         if (changeMode) { hideModal = !hideModal }
                     }} class:cursor-pointer={changeMode} class="rounded-full drop-shadow-xl hover:-translate-y-1 transition-all h-40 w-40 min-h-[10rem] min-w-[10rem]" src={photoHref} alt="">
-                    <span class:hidden={!changeMode} class="transition-all hover:scale-125 absolute top-0 px-2 py-1 cursor-pointer rounded-full drop-shadow-xl bg-slate-700" on:click={() => {
+                    <span class:hidden={!changeMode} class="transition-all hover:scale-125 absolute top-0 px-2 py-1 cursor-pointer rounded-full drop-shadow-xl bg-stone-800" on:click={() => {
                         if (changeMode) { hideModal = !hideModal }
                     }}><Icon data={faPencil}/></span>
                 </span>
                 <h2 class="text-2xl break-words text-center font-black mt-4">{writerData?.name}</h2>
             </span>
-            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+            <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">HISTORY</h2>
                 <button class="float-right inline" on:click={() => {
                     biographyCollapsed = !biographyCollapsed;
@@ -210,7 +210,7 @@ import { get } from 'svelte/store';
                                 }
                             }}>
                                 <textarea class="w-full bg-transparent" bind:value={editBiography} name="" id="" cols="30" rows="10"></textarea>
-                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                                <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                             </form>
                         {:else}
                             <div id="biography">{@html marked(sanitizedBiography)}</div>
@@ -220,7 +220,7 @@ import { get } from 'svelte/store';
             </div>
 
             {#if changeMode}
-                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-gray-800">
+                <div class="social-media-links w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                     <h2 class="italic inline text-gray-400">SOCIALS</h2>
                     <div id="divider" class="w-full bg-gray-700 h-0.5"></div>
                     <form action="" on:submit|preventDefault={async () => {
@@ -258,7 +258,7 @@ import { get } from 'svelte/store';
                             <label class="inline-block align-middle" for="website"><Icon data={faGlobe}/></label>
                             <input id="website" bind:value={websiteLink} placeholder="website link" class="ml-1 inline-block align-middle w-5/6 bg-transparent" type="text">
                         </div>
-                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-slate-700 rounded-lg drop-shadow-xl">Submit</button>    
+                        <button class="mt-1 float-right block text-xs py-1 px-2 bg-stone-800 rounded-lg drop-shadow-xl">Submit</button>    
                     </form>
                 </div>
             {/if}
@@ -290,7 +290,7 @@ import { get } from 'svelte/store';
                 <span>
                     <Dropdown classes="absolute" label="Sort by {category}" buttonContent={label}>
                         <ul slot="elements" class="text-xs">
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg first:rounded-t-lg last:rounded-b-lg">Release date</p>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg first:rounded-t-lg last:rounded-b-lg">Release date</p>
                             <li on:click={() => {
                                 if (type === "tracks") {
                                     sortBy = "album.release_date"
@@ -301,7 +301,7 @@ import { get } from 'svelte/store';
                                 label = "Newest";
                                 category = "release date";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Newest</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Newest</li>
                             <li on:click={() => {
                                 if (type === "tracks") {
                                     sortBy = "album.release_date"
@@ -312,82 +312,82 @@ import { get } from 'svelte/store';
                                 label = "Oldest";
                                 category = "release date";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Oldest</li>
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Rating</p>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Oldest</li>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Rating</p>
                             <li on:click={() => {
                                 sortBy = "avgRating"
                                 ascOrDesc = "desc";
                                 label = "Highest";
                                 category = "rating";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Highest</li>
                             <li on:click={() => {
                                 sortBy = "avgRating"
                                 ascOrDesc = "asc";
                                 label = "Lowest";
                                 category = "rating";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-pslate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Artist</p>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Artist</p>
                             <li on:click={() => {
                                 sortBy = "primary_artist"
                                 ascOrDesc = "asc";
                                 label = "A-Z";
                                 category = "artist";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
                             <li on:click={() => {
                                 sortBy = "primary_artist"
                                 ascOrDesc = "desc";
                                 label = "Z-A";
                                 category = "artist";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Track name</p>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Track name</p>
                             <li on:click={() => {
                                 sortBy = "name"
                                 ascOrDesc = "asc";
                                 label = "A-Z";
                                 category = "name";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">A-Z</li>
                             <li on:click={() => {
                                 sortBy = "name"
                                 ascOrDesc = "desc";
                                 label = "Z-A";
                                 category = "name";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Popularity</p>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Z-A</li>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Popularity</p>
                             <li on:click={() => {
                                 sortBy = "numRatings"
                                 ascOrDesc = "desc";
                                 label = "Highest";
                                 category = "popularity";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Highest</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Highest</li>
                             <li on:click={() => {
                                 sortBy = "numRatings"
                                 ascOrDesc = "asc";
                                 label = "Lowest";
                                 category = "popularity";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
-                            <p class="m-0 p-1 bg-slate-700 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Album type</p>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Lowest</li>
+                            <p class="m-0 p-1 bg-stone-800 italic rounded-bl-lg rounded-tl-lg first:rounded-t-lg last:rounded-b-lg">Album type</p>
                             <li on:click={() => {
                                 if (sortBy === "release_date") {
                                     sortBy = "album.release_date";
                                 }
                                 type = "tracks";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Track</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Track</li>
                             <li on:click={() => {
                                 if (sortBy === "album.release_date") {
                                     sortBy = "release_date";
                                 }
                                 type = "albums";
                                 refreshQuery();
-                            }} class="cursor-pointer hover:bg-slate-600 m-0 p-1 ml-3 bg-slate-700 first:rounded-t-lg last:rounded-b-lg">Album</li>
+                            }} class="cursor-pointer hover:bg-stone-900 m-0 p-1 ml-3 bg-stone-800 first:rounded-t-lg last:rounded-b-lg">Album</li>
                         </ul>
                     </Dropdown>
                 </span>

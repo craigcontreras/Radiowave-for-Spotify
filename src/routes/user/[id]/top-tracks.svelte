@@ -67,13 +67,13 @@
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-4xl inline-block font-black">Top tracks</h2>
             <div class="inline-block">
-                <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
+                <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
                     dateRange = "short_term";
                 }}>past 4 weeks</button>
-                <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all" on:click={() => {
+                <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all" on:click={() => {
                     dateRange = "medium_term";
                 }}>past 6 months</button>
-                <button class="px-2 py-1 bg-slate-700 hover:bg-slate-800 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
+                <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
                     dateRange = "long_term";
                 }}>lifetime</button>
             </div>

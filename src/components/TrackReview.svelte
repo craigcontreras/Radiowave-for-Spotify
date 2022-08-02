@@ -199,7 +199,7 @@ import { session } from '$app/stores';
     {/each}
     
     {#if currentTrackSize >= 5}
-        <button class="text-center py-4 px-8 bg-slate-700 hover:-translate-y-1 drop-shadow-lg rounded-lg transition-all" on:click={paginateData}>Load more reviews</button>
+        <button class="text-center py-4 px-8 bg-stone-800 hover:-translate-y-1 drop-shadow-lg rounded-lg transition-all" on:click={paginateData}>Load more reviews</button>
     {/if}
 </div>
 

@@ -704,25 +704,25 @@ import Seo from '../../components/SEO.svelte';
 
 <Modal header="All labels" bind:hideModal={hideModalLabels}><svelte:fragment slot="body">
     {#each publicLabels as label}
-        <a href="/{label.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white">{label.text}</a>
+        <a href="/{label.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white">{label.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All genres" bind:hideModal={hideModalGenres}><svelte:fragment slot="body">
     {#each publicGenres as genre}
-        <a href="/{genre.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white">{genre.text}</a>
+        <a href="/{genre.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white">{genre.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All writers" bind:hideModal={hideModalWriters}><svelte:fragment slot="body">
     {#each publicWriters as writer}
-        <a href="/{writer.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white">{writer.text}</a>
+        <a href="/{writer.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white">{writer.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
 <Modal header="All producers" bind:hideModal={hideModalProducers}><svelte:fragment slot="body">
     {#each publicProducers as producer}
-        <a href="/{producer.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-slate-700 rounded-lg not-italic text-white">{producer.text}</a>
+        <a href="/{producer.id}" class="drop-shadow-xl transition-all hover:-translate-y-[0.10rem] block mt-2 py-1 px-2 text-center bg-stone-900 rounded-lg not-italic text-white">{producer.text}</a>
     {/each}
 </svelte:fragment></Modal>
 
@@ -898,7 +898,7 @@ import Seo from '../../components/SEO.svelte';
                             {/each}
                             <InputWithTypeahead collectionType="writers" on:handleTypeaheadCreation={handleTypeaheadCreationForWriters} bind:hideTypeaheadCreate={hideTypeaheadCreateForWriters} {characterRegex} on:handleTypeaheadDisplay={handleTypeaheadDisplayForWriters} bind:currentLabelText={currentWriterText} {inChangeMode} on:handleTypeaheadSelection={handleTypeaheadSelectionForWriters} bind:autocompleteResults={autocompleteResultsForWriters}/>
                         </p>
-                        <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-gray-700" class:hidden={!inChangeMode}>Submit</button>
+                        <button type="submit" class="rounded-lg px-2 py-1 mt-1 bg-stone-800" class:hidden={!inChangeMode}>Submit</button>
                     </form>
                 </div>
                 {#if chartLoaded}
