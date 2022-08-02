@@ -1,10 +1,10 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-	import Likes from './Likes.svelte';
+	import Likes from '../interactive/Likes.svelte';
 	import Rating from './Rating.svelte';
     import { doc, getDoc } from "firebase/firestore";
-    import { db } from "../firebase.js";
+    import { db } from "../../firebase.js";
 
     export let reviewRating;
     export let reviewMessage;

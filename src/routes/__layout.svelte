@@ -6,10 +6,10 @@
 <script>
     import { fade } from "svelte/transition";
     import { navigating } from '$app/stores';
-	import PageTransition from './../components/PageTransition.svelte';
-	import Navbar from './../components/Navbar.svelte';
+	import PageTransition from './../components/utilities/PageTransition.svelte';
+	import Navbar from './../components/static/Navbar.svelte';
     import "../app.css";
-    import Footer from '../components/Footer.svelte';
+    import Footer from '../components/static/Footer.svelte';
 	import { loading } from './../lib/loading.js';
 
     export let url;

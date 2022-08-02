@@ -1,11 +1,11 @@
 <script>
-    import Review from './Review.svelte';
+    import Review from '../static/Review.svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { collection, serverTimestamp, doc, orderBy, query, writeBatch, getDocs, limit, startAfter } from "firebase/firestore";
     import { onMount } from "svelte";
     import remove from "lodash/remove.js";
-    import { auth, db } from "../firebase.js";
+    import { auth, db } from "../../firebase.js";
 import { get } from 'svelte/store';
 import { session } from '$app/stores';
 

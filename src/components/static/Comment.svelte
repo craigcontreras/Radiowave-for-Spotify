@@ -1,6 +1,6 @@
 <script>
     import { doc, getDoc } from "firebase/firestore";
-    import { db } from "../firebase.js";
+    import { db } from "../../firebase.js";
 
     export let commentMessage;
     export let commentAuthor;

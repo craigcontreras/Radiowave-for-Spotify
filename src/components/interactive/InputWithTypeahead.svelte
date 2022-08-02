@@ -2,7 +2,7 @@
     import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
     import find from "lodash/find.js";
     import { createEventDispatcher } from "svelte";
-    import { db } from "../firebase.js";
+    import { db } from "../../firebase.js";
     import Typeahead from "./Typeahead.svelte";
 
     export let collectionType;

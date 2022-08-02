@@ -5,7 +5,7 @@
 	import Cropper from './Cropper.svelte';
     import imageCompression from "browser-image-compression";
     import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-    import { db, storage } from "../firebase.js";
+    import { db, storage } from "../../firebase.js";
     import { v4 as uuidv4 } from "uuid";
     import { doc, setDoc } from 'firebase/firestore';
     import { createEventDispatcher } from 'svelte';

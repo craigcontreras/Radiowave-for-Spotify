@@ -4,10 +4,7 @@
 	import { session } from '$app/stores';
     import axios from "axios";
     import { signInWithCustomToken } from 'firebase/auth';
-    import { get } from 'svelte/store';
     import { auth } from "../firebase.js";
-
-    const {userAgent} = get(session);
 
     //try to decrypt the firebase token that was passed on from the server when logging in
     const res = axios({

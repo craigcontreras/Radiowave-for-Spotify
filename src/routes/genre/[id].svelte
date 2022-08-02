@@ -47,7 +47,7 @@
 </script>
 
 <script>
-	import Dropdown from './../../components/Dropdown.svelte';
+	import Dropdown from '../../components/interactive/Dropdown.svelte';
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
 	import { marked } from 'marked';
     import { slide } from "svelte/transition";

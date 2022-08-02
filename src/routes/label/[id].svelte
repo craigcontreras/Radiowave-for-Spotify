@@ -45,11 +45,11 @@
 </script>
 
 <script>
-	import Dropdown from './../../components/Dropdown.svelte';
+	import Dropdown from '../../components/interactive/Dropdown.svelte';
 	import BigTrackThumbnail from './../../components/thumbnails/BigTrackThumbnail.svelte';
 	import { marked } from 'marked';
-	import UploadFile from './../../components/UploadFile.svelte';
-	import Modal from './../../components/Modal.svelte';
+	import UploadFile from './../../components/interactive/UploadFile.svelte';
+	import Modal from '../../components/static/Modal.svelte';
 	import Icon from 'svelte-awesome';
     import { faYoutube } from '@fortawesome/free-brands-svg-icons/faYoutube';
     import { faTwitter } from '@fortawesome/free-brands-svg-icons/faTwitter';

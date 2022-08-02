@@ -1,10 +1,10 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
-    import { auth, db } from "../firebase.js";
+    import { auth, db } from "../../firebase.js";
     import { setDoc, deleteDoc, getDocs, doc, query, orderBy, serverTimestamp, collection, getDoc, limit, startAfter } from 'firebase/firestore';
     import { onMount } from 'svelte';
-    import Comment from './Comment.svelte';
+    import Comment from '../static/Comment.svelte';
     import { get } from 'svelte/store';
     import { session } from '$app/stores';
 

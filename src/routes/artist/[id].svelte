@@ -122,8 +122,8 @@
     import { onMount } from "svelte";
     import DOMPurify from "isomorphic-dompurify";
     import remove from 'lodash/remove.js';
-    import Modal from '../../components/Modal.svelte';
-    import InputWithTypeahead from '../../components/InputWithTypeahead.svelte';
+    import Modal from '../../components/static/Modal.svelte';
+    import InputWithTypeahead from '../../components/interactive/InputWithTypeahead.svelte';
     import axios from 'axios';
     import find from 'lodash/find.js';
     import { get } from 'svelte/store';

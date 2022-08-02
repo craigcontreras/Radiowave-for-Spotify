@@ -61,8 +61,8 @@
 
 <script>
 	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
-	import Review from './../../../../components/Review.svelte';
-	import Comments from './../../../../components/Comments.svelte';
+	import Review from './../../../../components/static/Review.svelte';
+	import Comments from './../../../../components/interactive/Comments.svelte';
 	import { page } from '$app/stores';
 
     export let reviewExists = false;

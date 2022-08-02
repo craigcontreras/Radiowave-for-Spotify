@@ -3,7 +3,7 @@
 	import { browser } from '$app/env';
 	import includes from 'lodash/includes.js';
     import { doc, getDoc, runTransaction, arrayUnion, arrayRemove } from "firebase/firestore";
-    import { auth, db } from '../firebase.js';
+    import { auth, db } from '../../firebase.js';
     import { onMount } from 'svelte';
 import { get } from 'svelte/store';
 import { session } from '$app/stores';

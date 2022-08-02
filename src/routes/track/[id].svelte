@@ -124,10 +124,10 @@
 
 <script>
     import TrackThumbnail from './../../components/thumbnails/TrackThumbnail.svelte';
-	import Modal from './../../components/Modal.svelte';
-	import InputWithTypeahead from './../../components/InputWithTypeahead.svelte';
-	import Rating from './../../components/Rating.svelte';
-    import TrackReview from "../../components/TrackReview.svelte";
+	import Modal from '../../components/static/Modal.svelte';
+	import InputWithTypeahead from './../../components/interactive/InputWithTypeahead.svelte';
+	import Rating from '../../components/static/Rating.svelte';
+    import TrackReview from "../../components/interactive/TrackReview.svelte";
     import find from "lodash/find.js";
     import remove from "lodash/remove.js";
     import { page, session } from "$app/stores";
@@ -137,10 +137,10 @@
     import { v4 as uuidv4 } from "uuid";
     import Icon from "svelte-awesome";
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
-    import Comments from '../../components/Comments.svelte';
+    import Comments from '../../components/interactive/Comments.svelte';
     import { slide } from "svelte/transition";
     import { get } from 'svelte/store';
-import Seo from '../../components/SEO.svelte';
+import Seo from '../../components/utilities/SEO.svelte';
 
     let inChangeMode = false;
     export let userId = "";

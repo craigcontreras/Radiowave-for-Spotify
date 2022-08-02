@@ -47,11 +47,10 @@
 
 <script>
 	import UserThumbnail from './../../../../components/thumbnails/UserThumbnail.svelte';
-	import Review from './../../../../components/Review.svelte';
-	import Comments from './../../../../components/Comments.svelte';
+	import Review from './../../../../components/static/Review.svelte';
+	import Comments from './../../../../components/interactive/Comments.svelte';
 	import { page } from '$app/stores';
     import { v4 as uuidv4 } from "uuid";
-import Seo from '../../../../components/SEO.svelte';
 
     export let reviewExists = false;
     export let reviewDetails = {};

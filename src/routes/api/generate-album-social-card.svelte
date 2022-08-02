@@ -24,7 +24,7 @@
     import { goto } from "$app/navigation";
     import { session } from "$app/stores";
     import { get } from "svelte/store";
-    import Rating from "../../components/Rating.svelte";
+    import Rating from "../../components/static/Rating.svelte";
     
     export let name;
     export let image;
