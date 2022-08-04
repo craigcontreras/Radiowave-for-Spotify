@@ -12,6 +12,9 @@
     export let reviewDate;
     export let commentHref;
     export let likeDoc;
+    export let trackId = "";
+    export let trackReview = "";
+    export let reviewType = "";
     export let showLikeText = true;
     export let showCommentText = true;
 </script>
@@ -35,7 +38,7 @@
     <p class="text-sm">Written on {new Date(reviewDate?.seconds * 1000)}</p>
     <div id="likes-comments-stats">
         {#if showLikeText}
-            <Likes fromDoc={likeDoc}/>
+            <Likes fromDoc={likeDoc} {reviewType} {trackId} {trackReview} {reviewAuthor}/>
         {/if}
         {#if showCommentText}
             <button on:click|preventDefault={() => {

@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../../components/utilities/SEO.svelte';
     import { doc, getDoc } from 'firebase/firestore';
     import { db } from '../../../firebase.js';
 
@@ -33,6 +34,7 @@
         } else {
             throw new Error("User does not exist");
         }
+        return "Completed";
     }
 </script>
 
@@ -45,6 +47,8 @@
     export let artistsPastSixMonths = [];
     export let artistsLifetime = [];
 </script>
+
+<SEO height=460 width=460 title="{userData?.data?.displayName} - Recent Plays - Users - Radiowave for Spotify" description="View {userData?.data?.displayName}'s Spotify stats like recently played, top artists & tracks, and their latest reviews on Radiowave for Spotify." image="{userData?.data?.photoURL}"/>
 
 <div class="page mx-6">
     <div class="my-2 text-sm breadcrumbs">
@@ -80,7 +84,7 @@
         </div>
 
         {#if dateRange === "short_term"}
-            <div class="flex flex-col gap-1 fade-bottom">
+            <div class="flex flex-col gap-1">
                 {#each artistsPastFourWeeks as item, id}
                     <a href="/artist/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">
                         <div class="inline-flex items-center gap-6">
@@ -92,7 +96,7 @@
                 {/each}
             </div>
         {:else if dateRange === "medium_term"}
-            <div class="flex flex-col gap-1 fade-bottom">
+            <div class="flex flex-col gap-1">
                 {#each artistsPastSixMonths as item, id}
                     <a href="/artist/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">
                         <div class="inline-flex items-center gap-6">
@@ -104,7 +108,7 @@
                 {/each}
             </div>
         {:else}
-            <div class="flex flex-col gap-1 fade-bottom">
+            <div class="flex flex-col gap-1">
                 {#each artistsLifetime as item, id}
                     <a href="/artist/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">
                         <div class="inline-flex items-center gap-6">

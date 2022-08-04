@@ -30,7 +30,7 @@
     }
 </script>
 
-<Seo name="" description="" image=""/>
+<Seo title="Home - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
 <a href="/login">Login</a>
 
 <style>

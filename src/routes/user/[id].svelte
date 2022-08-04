@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../components/utilities/SEO.svelte';
     import { doc, getDoc, setDoc } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
@@ -145,9 +146,7 @@
     }
 </script>
 
-<svelte:head>
-    
-</svelte:head>
+<SEO height=460 width=460 title="{userData?.displayName} - Users - Radiowave for Spotify" description="View {userData?.displayName}'s Spotify stats like recently played, top artists & tracks, and their latest reviews on Radiowave for Spotify." image="{userData?.photoURL}"/>
 
 <div class="page mx-6">
     <div class="mt-2 text-sm breadcrumbs">
@@ -166,7 +165,7 @@
                 <h2 class="text-2xl break-words text-center font-black mt-4">{userData?.displayName}</h2>
             </span>
             {#if !invalidUser}
-            <button class="transition-all hover:text-white hover:bg-stone-800 hover:-translate-y-1 border-2 border-stone-800 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+            <button class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
             {/if}
             <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIO</h2>

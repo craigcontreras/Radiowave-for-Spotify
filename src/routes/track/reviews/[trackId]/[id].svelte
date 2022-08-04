@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../../../components/utilities/SEO.svelte';
     import { db, auth } from "../../../../firebase.js";
     import { v4 as uuidv4 } from "uuid";
     import { doc, getDoc } from 'firebase/firestore';
@@ -7,6 +8,7 @@
     let reviewLikes;
     let reviewDetails;
     let trackDetails;
+    let authorDisplayName;
 
     export async function load({params}) {
         await loginToFirebase(params);
@@ -18,6 +20,7 @@
                 reviewLikes,
                 reviewDetails,
                 trackDetails,
+                authorDisplayName
             }
         }
     }
@@ -49,6 +52,8 @@
     async function getReview(params) {
         const reviewDetailsData = await getDoc(doc(db, `tracks/${params.trackId}/reviews/${params.id}`));
         reviewDetails = reviewDetailsData.data();
+        const user = await getDoc(doc(db, `users/${reviewDetails?.author}`));
+        authorDisplayName = user.data().displayName;
         return "Completed";
     }
 
@@ -69,7 +74,10 @@
     export let reviewDetails = {};
     export let trackDetails = {};
     export let reviewLikes = [];
+    export let authorDisplayName;
 </script>
+
+<SEO title="{authorDisplayName}'s review of {trackDetails?.album?.artists[0]?.name} - {trackDetails?.name} - Radiowave for Spotify" description="{reviewDetails?.message}" image={trackDetails?.album?.images[1]?.url} width=460 height=460/>
 
 <div class="mx-6">
     <div class="my-2 text-sm breadcrumbs">

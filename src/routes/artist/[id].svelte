@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../components/utilities/SEO.svelte';
     import { auth, db } from "../../firebase.js";
     import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
 
@@ -387,6 +388,8 @@ import Error from "../__error.svelte";
         }
     }
 </script>
+
+<SEO title="{artistData?.name} - Artist - Radiowave for Spotify" description="View all of the music released by {artistData?.name} on all of Spotify using Radiowave for Spotify's extensive backlog. Complete discography, reviews, ratings, and more." image="{artistData?.images[1]?.url}" height=460 width=460/>
 
 <Modal header="All genres" bind:hideModal={hideModalGenres}><svelte:fragment slot="body">
     {#each publicGenres as genre}

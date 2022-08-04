@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../components/utilities/SEO.svelte';
     import { auth, db } from "../../firebase.js";
     import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
 
@@ -180,6 +181,8 @@ import Error from "../__error.svelte";
         });
     }
 </script>
+
+<SEO title="{labelData?.name} - Label - Radiowave for Spotify" description="View all of the music released under {labelData?.name} on all of Spotify using Radiowave for Spotify's extensive backlog. Complete discography, reviews, ratings, and more." image="{photoHref}" height=460 width=460/>
 
 <Modal header="Upload image" bind:hideModal={hideModal}><svelte:fragment slot="body">
     <UploadFile bind:hideModal={hideModal} on:completedupload={(event) => {

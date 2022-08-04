@@ -8,13 +8,13 @@
     </div>
     <div class="navbar-center lg:flex-1">
         <ul class="menu menu-horizontal p-0">
-            <li><a href="">Home</a></li>
-            <li><a href="">Albums</a></li>
-            <li><a href="">Tracks</a></li>
-            <li><a href="">Artists</a></li>
-            <li><a href="">Writers</a></li>
-            <li><a href="">Producers</a></li>
-            <li><a href="">Genres</a></li>
+            <li><a href="/home">Home</a></li>
+            <li><a href="/album/top/2022">Albums</a></li>
+            <li><a href="/track/top/2022">Tracks</a></li>
+            <li><a href="/artist/all">Artists</a></li>
+            <li><a href="/writer/all">Writers</a></li>
+            <li><a href="/producer/all">Producers</a></li>
+            <li><a href="/genre/all">Genres</a></li>
         </ul>
     </div>
 </nav>

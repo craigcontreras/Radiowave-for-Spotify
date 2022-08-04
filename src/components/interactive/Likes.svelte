@@ -1,20 +1,26 @@
 <script>
 	import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
 	import { browser } from '$app/env';
 	import includes from 'lodash/includes.js';
-    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove } from "firebase/firestore";
+    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove, increment, setDoc } from "firebase/firestore";
     import { auth, db } from '../../firebase.js';
     import { onMount } from 'svelte';
-import { get } from 'svelte/store';
-import { session } from '$app/stores';
+    import { get } from 'svelte/store';
+    import { session } from '$app/stores';
 
     export let fromDoc;
+    export let reviewType = "";
+    export let trackId = "";
+    export let reviewAuthor = "";
+    export let trackReview = true;
 
     const reviewRef = doc(db, fromDoc);
     let userLoaded = false;
     let currentUserId = "";
     let likes = [];
     let liked = false;
+    let invalidUser = true;
 
     const {userAgent} = get(session);
 
@@ -48,19 +54,17 @@ import { session } from '$app/stores';
     }
 
     async function loginToFirebase() {
+        const currentDoc = await getDoc(reviewRef);
+        likes = currentDoc.data().likes;
+
         const user = await getCurrentUser();
         if (user !== null) {
+            invalidUser = false;
             //populating likes array
             currentUserId = user.uid;
-            const currentDoc = await getDoc(reviewRef);
-            likes = currentDoc.data().likes;
 
             if (includes(likes, currentUserId)) {
                 liked = true;
-            }
-        } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                // goto("/error");
             }
         }
     }
@@ -89,6 +93,27 @@ import { session } from '$app/stores';
 
             likes = likesArr;
             liked = true;
+
+            if (trackReview) {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+                const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+                const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+
+                let statisticsData = {
+                    track: trackId,
+                    author: reviewAuthor,
+                    type: reviewType,
+                    stats: {}
+                };
+
+                statisticsData.stats[date] = {
+                    likes: increment(1),
+                }
+
+                await setDoc(doc(db, `review-statistics/${trackId}-${reviewAuthor}`), statisticsData, {
+                    merge: true
+                });
+            }
         } catch (e) {
             console.log("Unable to like this");
             console.log(e);
@@ -128,14 +153,16 @@ import { session } from '$app/stores';
     }
 </script>
 
-{#if liked}
-    <button on:click|preventDefault={unlike}>
-        <p>Unlike</p>
-    </button>
-{:else}
-    <button on:click|preventDefault={like}>
-        <p>Like</p>
-    </button>
+{#if !invalidUser}
+    {#if liked}
+        <button on:click|preventDefault={unlike}>
+            <p>Unlike</p>
+        </button>
+    {:else}
+        <button on:click|preventDefault={like}>
+            <p>Like</p>
+        </button>
+    {/if}
 {/if}
 
 <style>

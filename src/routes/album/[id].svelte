@@ -358,18 +358,24 @@
             merge: true
         });
 
-        let statisticsData = {};
-        
-        if (albumData?.isSingle) {
-            statisticsData["type"] = "track";
-        } else {
-            statisticsData["type"] = "album";
-        }
-        statisticsData[date] = increment(1);
+        if (!albumData?.isSingle) {
+            let statisticsData = {
+                name: albumData?.name,
+                artist: albumData?.artists[0]?.name,
+                release_date: albumData?.release_date,
+                image: albumData?.images[1].url,
+                href: `/album/${$page.params.id}`,
+                stats: {}
+            };
 
-        await setDoc(doc(db, `statistics/${$page.params.id}`), statisticsData, {
-            merge: true
-        });
+            statisticsData.stats[date] = {
+                pageViews: increment(1),
+            }
+
+            await setDoc(doc(db, `statistics/${$page.params.id}`), statisticsData, {
+                merge: true
+            });
+        }
 
         const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
         range.forEach(date => {

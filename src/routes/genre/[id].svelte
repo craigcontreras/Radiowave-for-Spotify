@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../components/utilities/SEO.svelte';
     import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
@@ -152,6 +153,8 @@
         });
     }
 </script>
+
+<SEO title="{genreData?.name} - Genre - Radiowave for Spotify" description="View all of the music tagged as {genreData?.name} on all of Spotify using Radiowave for Spotify's extensive backlog. Complete discography, reviews, ratings, and more." image="{genreData?.photoURL}" height=460 width=460/>
 
 <div class="page mx-6">
     <div class="mt-2 text-sm breadcrumbs">

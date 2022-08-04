@@ -6,8 +6,8 @@
     import { onMount } from "svelte";
     import remove from "lodash/remove.js";
     import { auth, db } from "../../firebase.js";
-import { get } from 'svelte/store';
-import { session } from '$app/stores';
+    import { get } from 'svelte/store';
+    import { session } from '$app/stores';
 
     export let trackId;
     export let trackName;
@@ -18,6 +18,7 @@ import { session } from '$app/stores';
     export let likeDoc;
     export let fromDoc;
     export let fromCollection;
+    export let reviewType;
     
     let lastVisible;
     let currentTrackSize;
@@ -74,19 +75,23 @@ import { session } from '$app/stores';
     }
 
     async function loginToFirebase() {
+        const allTracksRef = collection(db, fromCollection);
+        const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"), limit(5));
+        const allTracks = await getDocs(allTracksQuery);
+
+        lastVisible = allTracks.docs[allTracks.docs.length - 1];
+        currentTrackSize = allTracks.docs.length;
+
+        allTracks.forEach(doc => {
+            addToReviews(doc.data());
+        });
+
         const user = await getCurrentUser();
+
         if (user !== null) {
             invalidUser = false;
-            const allTracksRef = collection(db, fromCollection);
-            const allTracksQuery = query(allTracksRef, orderBy("likeCount", "desc"), limit(5));
-            const allTracks = await getDocs(allTracksQuery);
-
-            lastVisible = allTracks.docs[allTracks.docs.length - 1];
-            currentTrackSize = allTracks.docs.length;
 
             allTracks.forEach(doc => {
-                addToReviews(doc.data());
-
                 if (doc.id === user.uid) {
                     currUserHasReview = true;
                     currUserReview = doc.data().message;
@@ -117,9 +122,7 @@ import { session } from '$app/stores';
                 location.reload();
             }
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                goto("/error");
-            }
+            throw new Error("User is not logged in")
         }
     }
 
@@ -152,9 +155,7 @@ import { session } from '$app/stores';
                 location.reload();
             }
         } else {
-            if (!userAgent.includes("prerender Prerender (+https://github.com/prerender/prerender)") && browser) {
-                goto("/error");
-            }
+            throw new Error("User is not logged in");
         }
     }
 </script>
@@ -195,7 +196,7 @@ import { session } from '$app/stores';
 
 <div id="reviews">
     {#each allTrackReviews as review}
-        <Review commentHref={commentHref + `${review.author}`} likeDoc={likeDoc + `${review.author}`} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} reviewDate={review.date} />
+        <Review {reviewType} trackReview={true} commentHref={commentHref + `${review.author}`} likeDoc={likeDoc + `${review.author}`} reviewRating={review.rating} reviewMessage={review.message} reviewAuthor={review.author} {trackId} reviewDate={review.date} />
     {/each}
     
     {#if currentTrackSize >= 5}

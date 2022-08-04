@@ -439,9 +439,18 @@
         });
 
         let statisticsData = {
-            type: "track"
+            type: "track",
+            name: trackData?.name,
+            artist: trackData?.album?.artists[0]?.name,
+            release_date: trackData?.album?.release_date,
+            image: trackData?.album?.images[1].url,
+            href: `/track/${$page.params.id}`,
+            stats: {}
         };
-        statisticsData[date] = increment(1);
+
+        statisticsData.stats[date] = {
+            pageViews: increment(1),
+        }
 
         await setDoc(doc(db, `statistics/${$page.params.id}`), statisticsData, {
             merge: true
@@ -1153,7 +1162,7 @@
     {:else}
         <h3 class="text-2xl font-bold">{trackData?.numRatings} reviews</h3>
     {/if}
-    <TrackReview fromDoc="tracks/{$page.params.id}/reviews/{userId}" fromCollection="tracks/{$page.params.id}/reviews" commentHref="/track/reviews/{$page.params.id}/" likeDoc="tracks/{$page.params.id}/reviews/" trackId={$page.params.id} trackName={trackData?.name} trackAuthor={trackData?.album?.artists[0]?.name} trackHref={trackData?.album?.images[1]?.url} {userId}/>
+    <TrackReview reviewType="tracks" fromDoc="tracks/{$page.params.id}/reviews/{userId}" fromCollection="tracks/{$page.params.id}/reviews" commentHref="/track/reviews/{$page.params.id}/" likeDoc="tracks/{$page.params.id}/reviews/" trackId={$page.params.id} trackName={trackData?.name} trackAuthor={trackData?.album?.artists[0]?.name} trackHref={trackData?.album?.images[1]?.url} {userId}/>
 </div>
 
 <div class="mx-6 divider"></div>

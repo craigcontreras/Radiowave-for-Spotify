@@ -58,23 +58,23 @@
     }
 
     async function loginToFirebase() {
+        const allCommentsRef = collection(db, fromCollection);
+        const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"), limit(5));
+        const allComments = await getDocs(allCommentsQuery);
+
+        lastVisible = allComments.docs[allComments.docs.length - 1];
+        currentCommentSize = allComments.docs.length;
+
+        if (!allComments.empty) {
+            allComments.forEach((doc) => {
+                addToComments(doc.data());
+            });
+        }
+        
         const user = await getCurrentUser();
         if (user !== null) {
             invalidUser = false;
-            currentUserId = user.uid;
-            
-            const allCommentsRef = collection(db, fromCollection);
-            const allCommentsQuery = query(allCommentsRef, orderBy("timestamp"), limit(5));
-            const allComments = await getDocs(allCommentsQuery);
-
-            lastVisible = allComments.docs[allComments.docs.length - 1];
-            currentCommentSize = allComments.docs.length;
-
-            if (!allComments.empty) {
-                allComments.forEach((doc) => {
-                    addToComments(doc.data());
-                });
-            }
+            currentUserId = user.uid;            
         }
     }
 

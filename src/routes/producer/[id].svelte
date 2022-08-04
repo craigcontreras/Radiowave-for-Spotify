@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../components/utilities/SEO.svelte';
     import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, startAfter, where } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
@@ -179,6 +180,8 @@
         });
     }
 </script>
+
+<SEO title="{producerData?.name} Credits - Producer - Radiowave for Spotify" description="View {producerData?.name}'s production credits on Radiowave for Spotify. Complete discography, reviews, ratings, and more." image="{photoHref}" height=460 width=460/>
 
 <Modal header="Upload image" bind:hideModal={hideModal}><svelte:fragment slot="body">
     <UploadFile bind:hideModal={hideModal} on:completedupload={(event) => {

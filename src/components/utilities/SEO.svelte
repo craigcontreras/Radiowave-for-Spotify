@@ -2,6 +2,8 @@
     export let image;
     export let title;
     export let description;
+    export let width = 730;
+    export let height = 412;
     export let robots = "index, follow, max-snippet:1, max-image-preview:large, max-video-preview:-1";
 </script>
 
@@ -20,6 +22,6 @@
     <meta property="description" content={description}>
     <meta property="og:image" content={image}>
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:width" content="730">
-    <meta property="og:image:height" content="412">
+    <meta property="og:image:width" content="{width}">
+    <meta property="og:image:height" content="{height}">
 </svelte:head>

@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../components/utilities/SEO.svelte';
     import { db, auth } from '../firebase';
 
     let userInfo;
@@ -45,6 +46,7 @@
     export let invalidUser;
 </script>
 
+<SEO title="Account - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
 {#if !invalidUser}
     <p>Signed in as {userInfo.displayName}</p>
     
