@@ -267,7 +267,7 @@
         <div class="content basis-4/5 pr-14">
             {#if recentPlays.length !== 0}
                 <div class="recent-plays">
-                    <h2 class="text-4xl mb-4 font-black">Recent plays</h2>
+                    <h2 class="text-4xl mb-4 font-black">Recent plays <span class="text-xs font-normal opacity-50">updates every 40 minutes</span></h2>
                     <div class="flex flex-col gap-1 fade-bottom">
                         {#each recentPlays.slice(0, 5) as item}
                             <a href="/track/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">

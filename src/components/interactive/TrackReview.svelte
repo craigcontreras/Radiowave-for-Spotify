@@ -151,6 +151,10 @@
                 message,
                 likes: [],
                 likeCount: 0,
+                trackId,
+                trackName,
+                trackAuthor,
+                trackHref,
             });
             batch.set(doc(db, `review-statistics/${trackId}-${userId}`), {
                 author: userId,

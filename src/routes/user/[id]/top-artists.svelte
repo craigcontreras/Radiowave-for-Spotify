@@ -54,7 +54,7 @@
     <div class="my-2 text-sm breadcrumbs">
         <ul>
             <li><a href="/user/all">Users</a></li>
-            <li><a href="/user/{userData?.id}}">{userData?.data?.displayName}</a></li>
+            <li><a href="/user/{userData?.id}">{userData?.data?.displayName}</a></li>
             <li>Top tracks</li>
         </ul>
     </div>

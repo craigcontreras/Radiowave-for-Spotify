@@ -72,6 +72,7 @@
     </div>
     <div class="divider"></div>
     <div class="flex flex-col gap-1 recent-plays">
+        <h2 class="text-4xl font-black">Recent plays <span class="text-xs font-normal opacity-50">updates every 40 minutes</span></h2>
         {#if recentPlays.length !== 0}
             {#each recentPlays as item}
                 <a href="/track/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">
@@ -83,6 +84,8 @@
                     <p>{item.artist}</p>
                 </a>
             {/each}
+        {:else}
+            <p>Recent plays could not be loaded because of an error.</p>
         {/if}
     </div>
 </div>

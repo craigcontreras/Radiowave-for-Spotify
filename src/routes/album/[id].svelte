@@ -944,7 +944,7 @@
     {/if}
     <div class="shoutbox">
         <h2 class="text-4xl align-middle font-black inline">Shoutbox</h2>
-        <button class="ml-4 px-2 py-1 bg-slate-700 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
+        <button class="ml-4 px-2 py-1 bg-stone-800 hover:-translate-y-1 drop-shadow-xl rounded-lg transition-all" on:click={() => { commentCollapsed = !commentCollapsed }}>collapse</button>
         {#if !commentCollapsed}
             <div class="mt-4" transition:slide>
                 <Comments fromCollection={`albums/${$page.params.id}/comments`} fromDoc={`albums/${$page.params.id}/comments/${uuidv4()}`}/>

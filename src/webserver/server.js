@@ -3,15 +3,13 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getAuth } from 'firebase-admin/auth';
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as Pusher from "pusher";
 import crypto from "crypto";
 import base64url from "base64url";
 import querystring from "querystring";
 import axios from "axios";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "./firebase.js";
 import * as cron from "node-cron";
-import prerender from "prerender-node";
 import { handler } from "./build/handler.js";
 
 //initialize express server
@@ -32,6 +30,8 @@ initializeApp({
     credential: applicationDefault(), //uses the environment variable
     databaseURL: ""
 });
+
+const db = getFirestore();
 
 //initialize pusher node (only intended for server) client
 const pusher = new Pusher.default({
@@ -297,7 +297,7 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
     });
 
     await Promise.all([createAccount]);
-    await setDoc(doc(db, `users/${uuid}`), {
+    await db.collection("users").doc(uuid).set({
         displayName: name,
         photoURL,
         access,
@@ -310,16 +310,46 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
         tracksPastSixMonths,
         artistsPastLifetime,
         tracksPastLifetime,
+
     }, {
-        merge: true,
+        merge: true
     });
 
     const token = await getAuth().createCustomToken(uuid);
     return token;
 }
 
+async function runTransactionForTrack(uuid, trackId, playedAt) {
+    try {
+        const reference = db.collection("users").doc(uuid).collection("tracker").doc(trackId);
+        await db.runTransaction(async (transaction) => {
+            const track = await transaction.get(reference);
+
+            if (!track.exists) {
+                await transaction.create(reference, {
+                    playedAt,
+                    plays: 1,
+                })
+            } else {
+                const lastPlayed = track.data().playedAt.toDate();
+    
+                if (lastPlayed >= playedAt) {
+                    throw new Error("Last played is equal to playedAt");
+                } else {
+                    await transaction.update(reference, {
+                        playedAt,
+                        plays: FieldValue.increment(1),
+                    });
+                }
+            }
+        });
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 async function startCronJobs(uuid) {
-    const userData = await getDoc(doc(db, `users/${uuid}`));
+    const userData = await db.collection("users").doc(uuid).get();
     let access = userData.data().access;
     let refresh = userData.data().refresh;
 
@@ -341,6 +371,11 @@ async function startCronJobs(uuid) {
             pusher.trigger("cache-recently-played", uuid, {
                 data: arr
             });
+
+            arr.forEach((track) => {
+                const date = new Date(track.played_at);
+                runTransactionForTrack(uuid, track.id, date);
+            });
         }).catch(err => {
             //if the error code is 401, that means the access token is invalid
             //get a new access token by using the refresh
@@ -359,12 +394,12 @@ async function startCronJobs(uuid) {
                     const newAccess = spotifyData.data.access_token;
                     const newRefresh = spotifyData.data.refresh_token;
 
-                    await setDoc(doc(db, `users/${uuid}`), {
+                    await db.collection("users").doc(uuid).set({
                         access: newAccess,
                         refresh: newRefresh
                     }, {
-                        merge: true
-                    });
+                        merge: true 
+                    }); 
 
                     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                         headers: {
@@ -392,10 +427,10 @@ async function startCronJobs(uuid) {
 
     //cron job that runs every 5 minutes
     //this one gets the user's recently played and uses pusher to serve the new tracks in real time
-    const fiveMin = cron.schedule('*/30 * * * *', async () => {
-        const userData = await getDoc(doc(db, `users/${uuid}`));
-        access = userData.data().access;
-        refresh = userData.data().refresh;
+    const fiveMin = cron.schedule('*/40 * * * *', async () => {
+        const userData = await db.collection("users").doc(uuid).get();
+        let access = userData.data().access;
+        let refresh = userData.data().refresh;
 
         axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
             headers: {
@@ -409,10 +444,16 @@ async function startCronJobs(uuid) {
                 name: e.track.name,
                 artist: e.track.album.artists[0].name,
                 image: e.track.album.images[1].url,
+                albumId: e.track.album.id,
             }));
 
             pusher.trigger("cache-recently-played", uuid, {
                 data: arr
+            });
+
+            arr.forEach((track) => {
+                const date = new Date(track.played_at);
+                runTransactionForTrack(uuid, track.id, date);
             });
         }).catch(err => {
             //if the error code is 401, that means the access token is invalid
@@ -432,12 +473,12 @@ async function startCronJobs(uuid) {
                     const newAccess = spotifyData.data.access_token;
                     const newRefresh = spotifyData.data.refresh_token;
 
-                    await setDoc(doc(db, `users/${uuid}`), {
+                    await db.collection("users").doc(uuid).set({
                         access: newAccess,
                         refresh: newRefresh
                     }, {
-                        merge: true
-                    });
+                        merge: true 
+                    }); 
 
                     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                         headers: {
@@ -455,6 +496,11 @@ async function startCronJobs(uuid) {
 
                         pusher.trigger("cache-recently-played", uuid, {
                             data: arr
+                        });
+
+                        arr.forEach((track) => {
+                            const date = new Date(track.played_at);
+                            runTransactionForTrack(uuid, track.id, date);
                         });
                     }).catch(reason => {
                         console.log("")

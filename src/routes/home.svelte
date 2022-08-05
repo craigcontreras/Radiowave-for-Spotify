@@ -1,6 +1,6 @@
 <script context="module">
 	import SEO from './../components/utilities/SEO.svelte';
-    import { collection, orderBy, query, getDocs, limit, getDoc, doc } from "firebase/firestore";
+    import { collection, orderBy, query, getDocs, limit, getDoc, doc, where } from "firebase/firestore";
     import { db, auth } from "../firebase.js";
     import axios from "axios";
 
@@ -9,11 +9,13 @@
     let invalidUser = true;
     let trendingReviews = [];
     let latestReleases = [];
+    let underTheRadar = [];
 
     export async function load({params}) {
         tracks = [];
         trendingReviews = [];
         latestReleases = [];
+        underTheRadar = [];
         await loginToFirebase(params);
         return {
             props: {
@@ -21,6 +23,7 @@
                 tracks,
                 trendingReviews,
                 latestReleases,
+                underTheRadar
             }
         }
     }
@@ -69,6 +72,27 @@
         return "Completed";
     }
 
+    async function getUnderTheRadarTracks() {
+        const reference = collection(db, `albums`);
+        const trackQuery = query(reference, where("numRatings", "<=", 20), where("numRatings", "!=", 0), orderBy("numRatings", "asc"), limit(16));
+        const allTracks = await getDocs(trackQuery);
+        let tempCollection = [];
+
+        allTracks.forEach(doc => {
+            if (doc.data().avgRating >= 80) {
+                tempCollection.push({data: doc.data(), id: doc.id});
+                tempCollection = tempCollection;
+            }
+        });
+
+        for (const data of tempCollection) {
+            underTheRadar.push(data);
+            underTheRadar = underTheRadar;
+        }
+
+        return "Completed";
+    }
+
     async function loginToFirebase(params) {
         const user = await getCurrentUser();
         if (user !== null) {
@@ -108,6 +132,8 @@
             trendingReviews = trendingReviews;
         }
 
+        await getUnderTheRadarTracks();
+
         return "Completed";
     }
 </script>
@@ -120,6 +146,7 @@
     export let trendingReviews = [];
     export let tracks = [];
     export let invalidUser = false;
+    export let underTheRadar = [];
 </script>
 
 <SEO title="Home - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
@@ -164,6 +191,17 @@
                 <BigTrackThumbnail title={track.name}
                     artist={track.artist} src={track.image} alt="" 
                     href={track.href} date={track.release_date} classes=""/>
+            {/each}
+        </div>
+    </div>
+    <div class="divider"></div>
+    <div class="under-the-radar">
+        <h2 class="text-4xl font-black mb-4">Under the radar</h2>
+        <div class="content grid grid-flow-row-dense grid-cols-8 gap-4">
+            {#each underTheRadar as releases}
+                <BigTrackThumbnail title={releases.data.name}
+                artist={releases.data.primary_artist} src={releases.data.images[1].url} alt="" 
+                href="/album/{releases.id}" date={releases.data.release_date} classes=""/>
             {/each}
         </div>
     </div>

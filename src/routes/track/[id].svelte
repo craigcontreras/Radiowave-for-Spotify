@@ -14,6 +14,7 @@
     let initialLoadData;
     let initialLoadData2;
     let invalidUser = true;
+    let amountOfPlays = 0;
 
     export async function load({params}) {
         initialLoadData = [];
@@ -29,6 +30,7 @@
                 initialLoadData2,
                 trackData,
                 invalidUser,
+                amountOfPlays,
             }
         }
     }
@@ -107,6 +109,12 @@
             userDoc = await getDoc(doc(db, `users/${user.uid}`));
             userAccessToken = userDoc.data().access;
             userRefreshToken = userDoc.data().refresh;
+            const playsDoc = await getDoc(doc(db, `users/${user.uid}/tracker/${params.id}`));
+            if (!playsDoc.exists()) {
+                amountOfPlays = 0;
+            } else {
+                amountOfPlays = playsDoc.data().plays;
+            }
             invalidUser = false;
         }
         
@@ -146,6 +154,7 @@
 
     let inChangeMode = false;
     export let userId = "";
+    export let amountOfPlays = 0;
     let key = "N/A";
     let danceability = "N/A";
     let energy = "N/A";
@@ -1123,6 +1132,9 @@
                 <p class="font-bold text-right max-w-[90%]">Popularity of {trackData?.name} in the past week</p>
                 <div class="" use:chartMethod={options}></div>
             </div>
+            {/if}
+            {#if !invalidUser}
+                <p transition:slide class="italic mt-6">You've played this track {amountOfPlays} {amountOfPlays === 1 ? "time" : "times"} <span class="opacity-50 text-sm">since registering with Radiowave</span></p>
             {/if}
         </div>
     </div>
