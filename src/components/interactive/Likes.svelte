@@ -147,6 +147,27 @@
 
             likes = likesArr;
             liked = false;
+
+            if (trackReview) {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+                const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+                const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+
+                let statisticsData = {
+                    track: trackId,
+                    author: reviewAuthor,
+                    type: reviewType,
+                    stats: {}
+                };
+
+                statisticsData.stats[date] = {
+                    likes: increment(-1),
+                }
+
+                await setDoc(doc(db, `review-statistics/${trackId}-${reviewAuthor}`), statisticsData, {
+                    merge: true
+                });
+            }
         } catch (e) {
             console.log("Unable to unlike this");
         }

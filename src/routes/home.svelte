@@ -1,21 +1,26 @@
 <script context="module">
 	import SEO from './../components/utilities/SEO.svelte';
-    import { collection, orderBy, query, getDocs, limit, getDoc } from "firebase/firestore";
+    import { collection, orderBy, query, getDocs, limit, getDoc, doc } from "firebase/firestore";
     import { db, auth } from "../firebase.js";
+    import axios from "axios";
 
     let tracks = [];
     let userLoaded = false;
     let invalidUser = true;
-    let reviews = [];
+    let trendingReviews = [];
+    let latestReleases = [];
 
     export async function load({params}) {
         tracks = [];
+        trendingReviews = [];
+        latestReleases = [];
         await loginToFirebase(params);
         return {
             props: {
                 invalidUser,
                 tracks,
-                reviews
+                trendingReviews,
+                latestReleases,
             }
         }
     }
@@ -33,10 +38,45 @@
         });
     }
 
+    async function grabLatestReleasesFromSpotify(access) {
+        try {
+            const releases = await axios.get("https://api.spotify.com/v1/browse/new-releases", {
+                headers: {
+                    Authorization: `Bearer ${access}`
+                },
+                params: {
+                    limit: 16
+                }
+            });
+
+            latestReleases = releases.data.albums.items;
+        } catch (err) {
+            await grabLatestReleasesFromFirebase();
+        }
+        return "Completed";
+    }
+
+    async function grabLatestReleasesFromFirebase() {
+        const trackReference = collection(db, `tracks`);
+        const trackQuery = query(trackReference, orderBy("album.release_date", "desc"), limit(16));
+        const allTracks = await getDocs(trackQuery);
+
+        allTracks.forEach(doc => {
+            latestReleases.push({data: doc.data(), id: doc.id});
+            latestReleases = latestReleases;
+        });
+
+        return "Completed";
+    }
+
     async function loginToFirebase(params) {
         const user = await getCurrentUser();
         if (user !== null) {
             invalidUser = false;
+            const userDoc = await getDoc(doc(db, `users/${user.uid}`));
+            await grabLatestReleasesFromSpotify(userDoc.data().access);
+        } else {
+            await grabLatestReleasesFromFirebase();
         }
 
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
@@ -53,23 +93,31 @@
         });
 
         const reviewStatsRef = collection(db, `review-statistics`);
-        const reviewStatsQuery = query(reviewStatsRef, orderBy(`stats.${date}.likes`, "desc"), limit(3));
+        const reviewStatsQuery = query(reviewStatsRef, orderBy(`stats.${date}.likes`, "desc"), limit(4));
         const reviews = await getDocs(reviewStatsQuery);
+        let tempCollection = [];
         
-        reviews.forEach(async (doc) => {
-            const data = doc.data();
+        reviews.forEach((doc) => {
+            tempCollection.push(doc.data());
+            tempCollection = tempCollection;
+        })
+
+        for (const data of tempCollection) {
             const review = await getDoc(doc(db, `${data.type}/${data.track}/reviews/${data.author}`));
-            reviews.push(review.data());
-            reviews = reviews;
-        });
+            trendingReviews.push(review.data());
+            trendingReviews = trendingReviews;
+        }
 
         return "Completed";
     }
 </script>
 
 <script>
+    import OffPageReview from "../components/static/OffPageReview.svelte";
     import BigTrackThumbnail from "../components/thumbnails/BigTrackThumbnail.svelte";
 
+    export let latestReleases = [];
+    export let trendingReviews = [];
     export let tracks = [];
     export let invalidUser = false;
 </script>
@@ -83,6 +131,29 @@
         <div class="divider"></div>
         <div class="new-releases">
             <h2 class="text-4xl font-black mb-4">New releases</h2>
+            <div class="content">
+                <div class="grid grid-flow-row-dense grid-cols-8 gap-4">
+                    {#each latestReleases as releases}
+                        <BigTrackThumbnail title={releases.name}
+                        artist={releases.artists[0].name} src={releases.images[1].url} alt="" 
+                        href="/album/{releases.id}" date={releases.release_date} classes=""/>
+                    {/each}
+                </div>
+            </div>
+        </div>
+        <div class="divider"></div>
+    {:else}
+        <div class="new-releases-no-spotify">
+            <h2 class="text-4xl font-black mb-4">New releases</h2>
+            <div class="content">
+                <div class="grid grid-flow-row-dense grid-cols-8 gap-4">
+                    {#each latestReleases as releases}
+                        <BigTrackThumbnail title={releases.data.name}
+                        artist={releases.data.primary_artist} src={releases.data.album.images[1].url} alt="" 
+                        href="/track/{releases.id}" date={releases.data.album.release_date} classes=""/>
+                    {/each}
+                </div>
+            </div>
         </div>
         <div class="divider"></div>
     {/if}
@@ -99,6 +170,11 @@
     <div class="divider"></div>
     <div class="popular-reviews">
         <h2 class="text-4xl font-black mb-4">Trending reviews</h2>
+        <div class="content grid grid-flow-row-dense grid-cols-2 gap-4">
+            {#each trendingReviews as review}
+                <OffPageReview likeCount={review.likeCount} reviewMessage={review.message} trackAuthor={review.trackAuthor} trackName={review.trackName} trackImage={review.trackHref} trackId={review.trackId} reviewAuthor={review.author} reviewType={review.type}/>
+            {/each}
+        </div>
     </div>
     <div class="divider"></div>
     <div class="popular-lists">

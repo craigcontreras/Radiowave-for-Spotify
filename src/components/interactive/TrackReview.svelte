@@ -107,6 +107,7 @@
             const batch = writeBatch(db);
             batch.delete(doc(db, fromDoc));
             batch.delete(doc(db, `users/${userId}/reviews/${trackId}`));
+            batch.delete(doc(db, `review-statistics/${trackId}-${userId}`));
             await batch.commit();
 
             currUserHasReview = false;
@@ -137,6 +138,11 @@
                 message,
                 likes: [],
                 likeCount: 0,
+                trackId,
+                trackName,
+                trackAuthor,
+                trackHref,
+                type: reviewType
             });
             batch.set(doc(db, `users/${userId}/reviews/${trackId}`), {
                 author: userId,
@@ -145,11 +151,13 @@
                 message,
                 likes: [],
                 likeCount: 0,
-                trackId,
-                trackName,
-                trackAuthor,
-                trackHref,
             });
+            batch.set(doc(db, `review-statistics/${trackId}-${userId}`), {
+                author: userId,
+                stats: {},
+                track: trackId,
+                type: reviewType
+            })
             await batch.commit();
             if (browser) {
                 location.reload();
