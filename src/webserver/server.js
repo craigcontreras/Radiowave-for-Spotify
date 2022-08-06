@@ -319,7 +319,7 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
     return token;
 }
 
-async function runTransactionForTrack(uuid, trackId, playedAt) {
+async function runTransactionForTrack(uuid, trackId, playedAt, amntOfPlays) {
     try {
         const reference = db.collection("users").doc(uuid).collection("tracker").doc(trackId);
         await db.runTransaction(async (transaction) => {
@@ -328,7 +328,7 @@ async function runTransactionForTrack(uuid, trackId, playedAt) {
             if (!track.exists) {
                 await transaction.create(reference, {
                     playedAt,
-                    plays: 1,
+                    plays: amntOfPlays,
                 })
             } else {
                 const lastPlayed = track.data().playedAt.toDate();
@@ -338,13 +338,34 @@ async function runTransactionForTrack(uuid, trackId, playedAt) {
                 } else {
                     await transaction.update(reference, {
                         playedAt,
-                        plays: FieldValue.increment(1),
+                        plays: FieldValue.increment(amntOfPlays),
                     });
                 }
             }
         });
     } catch (err) {
         console.log(err);
+    }
+}
+
+async function pushActivityToFirebase(arr, uuid) {
+    let trackPlays = {};
+    arr.forEach((track) => {
+        if (trackPlays[track.id] && trackPlays[track.id].hasOwnProperty("plays")) {
+            trackPlays[track.id].plays = trackPlays[track.id].plays + 1;
+        } else {
+            trackPlays[track.id] = {
+                id: track.id,
+                lastPlayed: new Date(track.played_at),
+                plays: 1,
+            };
+        }
+    });
+
+    console.log(trackPlays);
+
+    for (const data in trackPlays) {
+        runTransactionForTrack(uuid, trackPlays[data].id, trackPlays[data].lastPlayed, trackPlays[data].plays);
     }
 }
 
@@ -371,11 +392,8 @@ async function startCronJobs(uuid) {
             pusher.trigger("cache-recently-played", uuid, {
                 data: arr
             });
-
-            arr.forEach((track) => {
-                const date = new Date(track.played_at);
-                runTransactionForTrack(uuid, track.id, date);
-            });
+            
+            pushActivityToFirebase(arr, uuid);
         }).catch(err => {
             //if the error code is 401, that means the access token is invalid
             //get a new access token by using the refresh
@@ -418,6 +436,8 @@ async function startCronJobs(uuid) {
                         pusher.trigger("cache-recently-played", uuid, {
                             data: arr
                         });
+            
+                        pushActivityToFirebase(arr, uuid);
                     }).catch(reason => {
                         console.log("")
                     })
@@ -450,11 +470,8 @@ async function startCronJobs(uuid) {
             pusher.trigger("cache-recently-played", uuid, {
                 data: arr
             });
-
-            arr.forEach((track) => {
-                const date = new Date(track.played_at);
-                runTransactionForTrack(uuid, track.id, date);
-            });
+            
+            pushActivityToFirebase(arr, uuid);
         }).catch(err => {
             //if the error code is 401, that means the access token is invalid
             //get a new access token by using the refresh
@@ -497,11 +514,8 @@ async function startCronJobs(uuid) {
                         pusher.trigger("cache-recently-played", uuid, {
                             data: arr
                         });
-
-                        arr.forEach((track) => {
-                            const date = new Date(track.played_at);
-                            runTransactionForTrack(uuid, track.id, date);
-                        });
+            
+                        pushActivityToFirebase(arr, uuid);
                     }).catch(reason => {
                         console.log("")
                         //otherwise, stop the cron job entirely
