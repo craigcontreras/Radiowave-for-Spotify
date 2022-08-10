@@ -1,16 +1,28 @@
 <script>
+	import { slide } from 'svelte/transition';
     import { onMount } from "svelte";
-    import Icon from "svelte-awesome";
-    import faPlus from "@fortawesome/free-solid-svg-icons/faPlus";
     import { v4 as uuidv4 } from "uuid";
     import { db, auth } from "../../firebase.js";
-    import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+    import { collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
+    import find from "lodash/find.js";
+    import remove from "lodash/remove.js";
+    import Icon from "svelte-awesome";
+    import { faClose } from '@fortawesome/free-solid-svg-icons/faClose';
+
+    export let trackId;
+    export let trackType;
+    export let trackName;
+    export let trackArtist;
+    export let trackImage;
+    export let hide;
+    export let classes;
 
     let userLoaded = false;
     let invalidUser = true;
     let createListName = "";
     let userId = "";
-    let usersLists = [];
+    let usersLists = {};
+    let checked = {};
 
     onMount(() => {
         loginToFirebase();
@@ -39,55 +51,113 @@
     }
     
     async function getUsersLists() {
-        const lists = await getDocs(collection(db, `users/${userId}/lists`));
+        const listQuery = query(collection(db, `users/${userId}/lists`), orderBy("lastModified", "desc"));
+        const lists = await getDocs(listQuery);
         lists.forEach(doc => {
-            usersLists.push(doc.data());
-            usersLists = usersLists;
+            usersLists[doc.data().id] = doc.data();
+            checked[doc.data().id] = findInList(doc.data().id);
         });
     }
 
-    async function addToList() {
+    async function addToList(id) {
+        usersLists[id].tracks.push({
+            id: trackId,
+            name: trackName,
+            artist: trackArtist,
+            image: trackImage,
+            type: trackType,
+        });
+        usersLists[id].tracks = usersLists[id].tracks;
+        checked[id] = true;
 
+        await setDoc(doc(db, `users/${userId}/lists/${id}`), {...usersLists[id], lastModified: serverTimestamp() }, {
+            merge: true,
+        });
     }
 
-    async function removeFromList() {
+    async function removeFromList(id) {
+        if (find(usersLists[id].tracks, {id: trackId})) {
+            remove(usersLists[id].tracks, {id: trackId});
+            delete checked[id];
+            usersLists[id].tracks = usersLists[id].tracks;
 
+            await setDoc(doc(db, `users/${userId}/lists/${id}`), {...usersLists[id], lastModified: serverTimestamp() }, {
+                merge: true,
+            });
+        }
+    }
+
+    async function listCheck(id) {
+        if (find(usersLists[id].tracks, {id: trackId})) {
+            removeFromList(id);
+        } else {
+            addToList(id);
+        }
+    }
+
+    function findInList(id) {
+        if (find(usersLists[id].tracks, {id: trackId})) {
+            return true;
+        }
+        return false;
     }
 
     async function createList(name) {
+        if (!name || name.trim() === "" || name === "" || name === " " || name.replaceAll(" ", "") === "") return;
+
         const generatedUUID = uuidv4();
 
         const data = {
             name,
             userId,
             id: generatedUUID,
-            tracks: {},
-            albums: {},
+            tracks: [],
         }
 
-        await setDoc(doc(db, `users/${userId}/lists/${generatedUUID}`), data, {
+        await setDoc(doc(db, `users/${userId}/lists/${generatedUUID}`), {...data, lastModified: serverTimestamp() }, {
             merge: true,
         });
 
-        usersLists.push(data);
-        usersLists = usersLists;
+        usersLists[generatedUUID] = data;
+
+        createListName = "";
     }
 
-    async function deleteList() {
-        
+    async function deleteList(id) {
+        if (usersLists.hasOwnProperty(id)) {
+            delete usersLists[id];
+            usersLists = usersLists;
+            await deleteDoc(doc(db, `users/${userId}/lists/${id}`));
+        }
     }
 </script>
 
-{#if !invalidUser}
-    <div class="list-content rounded-lg bg-stone-900 drop-shadow-xl">
+{#if !invalidUser && !hide}
+    <div class:hidden={hide} transition:slide class="{classes} absolute py-2 px-4 z-50 max-h-fit max-w-fit list-content rounded-lg bg-stone-900 drop-shadow-xl">
         <form action="" on:submit|preventDefault={() => {
             createList(createListName);
         }}>
-            <Icon class="inline-block align-middle" data={faPlus}/><input class="inline-block align-middle ml-1" placeholder="Create a list..." type="text" bind:value={createListName}>
+            <input class="bg-transparent inline-block align-middle ml-1" placeholder="Create a list..." type="text" bind:value={createListName}>
         </form>
+
         <ul class="lists">
-            {#each usersLists as list}
-                <li></li>
+            {#each Object.entries(usersLists) as [key, value] (value.id)}
+                <div>
+                    <li class="inline-block align-middle form-control">
+                        <input type="checkbox" 
+                        bind:checked={checked[value.id]} on:click={() => {
+                            listCheck(value.id);
+                        }} class="inline mr-1">
+                        {#if value.name.length >= 26}
+                            {value.name.substring(0, 23)}...
+                        {:else}
+                            {value.name}
+                        {/if}
+                    </li>
+                    <button class="ml-1 inline-block align-middle" on:click={() => {
+                        deleteList(value.id);
+                    }}><Icon data={faClose}/></button>
+                </div>
             {/each}
         </ul>
     </div>

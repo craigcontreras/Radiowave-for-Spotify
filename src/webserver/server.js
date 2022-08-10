@@ -253,11 +253,15 @@ app.get("/callback", (req, res) => {
                     artistsLifetime = artistsLifetime;
                 }
 
+                let genresFourWeeks = countGenreOccurrencesForArtists(artistsFourWeeksFullData);
+                let genresSixMonths = countGenreOccurrencesForArtists(artistsSixMo);
+                let genresLifetime = countGenreOccurrencesForArtists(artistsLifetime);
+
                 const customToken = await createFirebaseAccount(userData.data.id, access, 
                     refresh, userData.data.display_name, userData.data.images[0].url, 
                     userData.data.email, tracksFourWeeks, artistsFourWeeks, artistsFourWeeksFullData, 
                     tracksFourWeeksFullData, artistsSixMo, tracksSixMo, artistsLifetime,
-                    tracksLifetime);
+                    tracksLifetime, genresFourWeeks, genresSixMonths, genresLifetime);
                 const customTokenEncrypted = encryption.encrypt(customToken);
                 res.cookie("access_firebase", customTokenEncrypted, {
                     secure: true,
@@ -277,8 +281,23 @@ app.listen(3000, () => {
     console.log("Listening on port 3000");
 });
 
+function countGenreOccurrencesForArtists(artists) {
+    const occurrences = {};
+    for (const artist of artists) {
+        console.log(artist);
+        for (const genre of artist.genres) {
+            if (occurrences[genre.toLowerCase()]) {
+                occurrences[genre.toLowerCase()] = occurrences[genre.toLowerCase()] + 1;
+            } else {
+                occurrences[genre.toLowerCase()] = 1;
+            }
+        }
+    }
+    return occurrences;
+}
+
 //firebase functions
-async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists, artistsPastFourWeeks, tracksPastFourWeeks, artistsPastSixMonths, tracksPastSixMonths, artistsPastLifetime, tracksPastLifetime) {
+async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists, artistsPastFourWeeks, tracksPastFourWeeks, artistsPastSixMonths, tracksPastSixMonths, artistsPastLifetime, tracksPastLifetime, genresFourWeeks, genresSixMonths, genresLifetime) {
     const createAccount = getAuth().updateUser(uuid, {
         email,
         emailVerified: true,
@@ -310,7 +329,9 @@ async function createFirebaseAccount(uuid, access, refresh, name, photoURL, emai
         tracksPastSixMonths,
         artistsPastLifetime,
         tracksPastLifetime,
-
+        genresFourWeeks,
+        genresSixMonths,
+        genresLifetime,
     }, {
         merge: true
     });
@@ -445,7 +466,7 @@ async function startCronJobs(uuid) {
             }
         });
 
-    //cron job that runs every 5 minutes
+    //cron job that runs every 40 minutes
     //this one gets the user's recently played and uses pusher to serve the new tracks in real time
     const fiveMin = cron.schedule('*/40 * * * *', async () => {
         const userData = await db.collection("users").doc(uuid).get();
@@ -525,53 +546,4 @@ async function startCronJobs(uuid) {
             }
         });
     });
-
-    //cron job that executes every 13 minutes
-    //this one is for tracking the user's recently played and adding it to firebase
-    //unsure if this will be implemented fully since this could be potentially super expensive on firebase
-    // const thirteenMin = cron.schedule('*/13 * * * *', () => {
-    //     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
-    //         headers: {
-    //             Authorization: `Bearer ${access}`
-    //         }        
-    //     }).then(data => {
-    //         for (let item of data.data.items) {
-    //             console.log(item);
-    //         }
-            
-    //         pusher.trigger("spotify-scrobbles", uuid, {
-    //             test: "test" 
-    //         });
-    //     }).catch(err => {
-    //         if (err.response.status === 401) {
-    //             const params = new URLSearchParams();
-    //             params.append("grant_type", "refresh_token");
-    //             params.append("refresh_token", refresh);
-    //             params.append("client_id", id);
-    //             axios.post("https://accounts.spotify.com/api/token", params, {
-    //                 headers: {
-    //                     "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
-    //                     "Content-Type": "application/x-www-form-urlencoded"
-    //                 }
-    //             }).then((spotifyData) => {
-    //                 const newAccess = spotifyData.data.access_token;
-    //                 axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=10", {
-    //                     headers: {
-    //                         Authorization: `Bearer ${newAccess}`
-    //                     }        
-    //                 }).then(tracksData => {
-    //                     for (let item of data.data.items) {
-    //                         console.log(item);
-    //                     }
-                        
-    //                     pusher.trigger("spotify-scrobbles", uuid, {
-    //                         test: "test" 
-    //                     });
-    //                 }).catch(err => {
-    //                     thirteenMin.stop();
-    //                 });
-    //             })
-    //         }
-    //     })
-    //});
 }

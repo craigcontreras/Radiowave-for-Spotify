@@ -115,6 +115,8 @@
 </script>
 
 <script>
+    import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart';
+    import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
 	import { slide } from 'svelte/transition';
 	import { page, session } from '$app/stores';
     import { browser } from "$app/env";
@@ -132,10 +134,12 @@
     import Comments from '../../components/interactive/Comments.svelte';
     import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
     import { get } from 'svelte/store';
+    import TrackLists from '../../components/interactive/TrackLists.svelte';
 
     export let albumData;
     export let userId = "";
 
+    let hideTrackList = true;
     let hide = false;
     let detailElement;
     let ratingColor = "";
@@ -744,7 +748,23 @@
     <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-black opacity-50">
         <div class:bg-gradient-to-b={!hide} class="relative h-full from-base-100 via-base-100 to-theme-color blur-2xl"></div>
     </div>
-    <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
+    <div>
+        <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
+        {#if !invalidUser && !albumData?.isSingle && !hide}
+            <div transition:slide class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex justify-around -mt-4">
+                <div class="add-to-list">
+                    <Icon class="mr-2 inline-block align-middle" data={faPlus}/><button class="inline-block align-middle" on:click|stopPropagation={() => {hideTrackList = !hideTrackList}}>
+                        Add to list
+                    </button>
+                    <TrackLists trackType="album" classes="" bind:hide={hideTrackList} trackArtist={albumData?.artists[0]?.name} trackName={albumData?.name} trackId={$page.params.id} trackImage={albumData?.images[0]?.url}/>    
+                </div>
+
+                <div class="like">
+                    <button class="inline-block align-middle">Like </button><Icon class="ml-2 inline-block align-middle" data={faHeart}/>
+                </div>
+            </div>    
+        {/if}
+    </div>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full content">
         <div class="text my-8 basis-3/5">
             <h1 class="text-6xl font-black max-w-[90%]">{albumData?.name}</h1>

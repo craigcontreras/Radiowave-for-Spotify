@@ -113,9 +113,9 @@
                 {#each tracksLifetime as item, id}
                     <a href="/track/{item.id}" class="px-4 py-1 hover:-translate-y-1 hover:bg-base-200 transition-all flex justify-between items-center">
                         <div class="inline-flex items-center gap-6">
+                            <p class="font-black">#{id + 1}</p>
                             <img class="rounded-lg drop-shadow-xl h-[50px] w-[50px] max-h-full max-w-full" src={item.image} alt="">
                             <p class="font-bold">{item.name}</p>
-                            <p class="text-xs">{new Date(item.played_at).getFullYear()}-{new Date(item.played_at).getMonth() + 1}-{new Date(item.played_at).getDate()} @ {new Date(item.played_at).getHours()}:{new Date(item.played_at).getMinutes()}</p> 
                         </div>
                         <p>{item.artist}</p>
                     </a>

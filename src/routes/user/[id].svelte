@@ -1,6 +1,6 @@
 <script context="module">
 	import SEO from './../../components/utilities/SEO.svelte';
-    import { doc, getDoc, setDoc } from "firebase/firestore";
+    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
     let userLoaded = false;
@@ -8,15 +8,18 @@
     let userDataDocument;
     let userData;
     let invalidUser = true;
+    let usersLists = [];
 
     export async function load({params}) {
+        usersLists = [];
         await loginToFirebase(params);
         return {
             props: {
                 ifIsUser,
                 userDataDocument,
                 userData,
-                invalidUser
+                invalidUser,
+                usersLists,
             }
         }
     }
@@ -39,6 +42,12 @@
         userDataDocument = await getDoc(doc(db, `users/${params.id}`));
         if (userDataDocument.exists()) {
             userData = userDataDocument.data();
+            const usersListsQuery = query(collection(db, `users/${params.id}/lists`), orderBy("lastModified", "desc"), limit(4));
+            const usersListsDocs = await getDocs(usersListsQuery);
+            usersListsDocs.forEach(doc => {
+                usersLists.push(doc.data());
+                usersLists = usersLists;
+            })
         } else {
             throw new Error("User does not exist");
         }
@@ -67,6 +76,7 @@
     import { onMount, onDestroy } from "svelte";
     import DOMPurify from "isomorphic-dompurify";
     import { get } from 'svelte/store';
+    import List from '../../components/static/List.svelte';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -99,11 +109,32 @@
     let artistsPastSixMonths = [];
     let artistsLifetime = [];
 
+    let genresWeeksData = [];
+    let genresWeeksLabels = [];
+    let genresMonthsData = [];
+    let genresMonthsLabels = [];
+    let genresLifetimeData = [];
+    let genresLifetimeLabels = [];
+
+    export let usersLists = [];
+
+    let options = {
+        chart: {
+            type: "pie",
+        },
+    };
+
+    let chartMethod;
+    let chartLoaded = false;
+
     const {userAgent} = get(session);
 
-    onMount(() => {
+    onMount(async () => {
         loginToFirebase();
-    })
+        const { chart } = await import("svelte-apexcharts");
+        chartMethod = chart;
+        chartLoaded = true;
+    });
 
     onDestroy(() => {
         pusher.unsubscribe("cache-recently-played");
@@ -134,6 +165,36 @@
         artistsLifetime = userData?.artistsPastLifetime;
         artistsPastFourWeeks = userData?.artistsPastFourWeeks;
         artistsPastSixMonths = userData?.artistsPastSixMonths;
+
+        for (const [key, value] of Object.entries(userData?.genresFourWeeks)) {
+            genresWeeksData.push(value);
+            genresWeeksLabels.push(key);
+            genresWeeksData = genresWeeksData;
+            genresWeeksLabels = genresWeeksLabels;
+        }
+
+        for (const [key, value] of Object.entries(userData?.genresSixMonths)) {
+            genresMonthsData.push(value);
+            genresMonthsLabels.push(key);
+            genresMonthsData = genresMonthsData;
+            genresMonthsLabels = genresMonthsLabels;
+        }
+
+        for (const [key, value] of Object.entries(userData?.genresSixMonths)) {
+            genresLifetimeData.push(value);
+            genresLifetimeLabels.push(key);
+            genresLifetimeData = genresLifetimeData;
+            genresLifetimeLabels = genresLifetimeLabels;
+        }
+
+        options = {
+            chart: {
+                type: "pie",
+                foreColor: "#FFFFFF",
+            },
+            series: genresWeeksData,
+            labels: genresWeeksLabels,
+        }
     }
 
     function enterChangeMode() {
@@ -403,14 +464,54 @@
                     <a href="{$page.params.id}/top-artists" class="hover:-translate-y-1 transition-all text-2xl font-bold">View all</a>
                 </div>
             </div>
+            <div class="top-genres mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-4xl inline-block font-black">Top genres</h2>
+                    <div class="inline-block">
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
+                            if (chartLoaded) {
+                                options["series"] = genresWeeksData;
+                                options["labels"] = genresWeeksLabels;
+                            }
+                        }}>past 4 weeks</button>
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all" on:click={() => {
+                            if (chartLoaded) {
+                                options["series"] = genresMonthsData;
+                                options["labels"] = genresMonthsLabels;
+                            }                        
+                        }}>past 6 months</button>
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
+                            if (chartLoaded) {
+                                options["series"] = genresLifetimeData;
+                                options["labels"] = genresLifetimeLabels;
+                            }
+                        }}>lifetime</button>
+                    </div>
+                </div>
+                {#if chartLoaded}
+                    <div transition:slide class="h-[85%] w-[85%] text-center hover:-translate-y-1 transition-all px-4 graph mt-6">
+                        <div class="" use:chartMethod={options}></div>
+                    </div>
+                {/if}    
+            </div>
+            <div class="lists">
+                <h2 class="text-4xl inline-block font-black">Latest lists</h2>
+                <div class="content grid grid-flow-row-dense grid-cols-2 gap-4">
+                    {#each usersLists as list}
+                        {#each list.tracks as track}
+                            <List name={list.name} images={[track.image, track.image, track.image, track.image, track.image]}/>
+                        {/each}
+                    {/each}
+                    {#if usersLists.length === 0}
+                        <p>No lists found.</p>
+                    {/if}
+                </div>
+            </div>
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
             </div>
             <div class="likes">
 
-            </div>
-            <div class="lists">
-                
             </div>
             <div class="tags">
 

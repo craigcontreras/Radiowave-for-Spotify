@@ -1,4 +1,5 @@
 <script context="module">
+	import Carousel from './../../components/static/Carousel.svelte';
     import axios from "axios";
     import { db, auth } from "../../firebase.js";
     import { collection, doc, getDoc, getDocs, increment, limit, orderBy, query, setDoc, where } from "firebase/firestore";
@@ -147,11 +148,15 @@
     import { v4 as uuidv4 } from "uuid";
     import Icon from "svelte-awesome";
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
+    import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart';
+    import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
     import Comments from '../../components/interactive/Comments.svelte';
     import { slide } from "svelte/transition";
     import { get } from 'svelte/store';
     import Seo from '../../components/utilities/SEO.svelte';
+    import TrackLists from '../../components/interactive/TrackLists.svelte';
 
+    let hideTrackList = true;
     let inChangeMode = false;
     export let userId = "";
     export let amountOfPlays = 0;
@@ -947,7 +952,23 @@
     <div class:bg-gradient-to-b={!hide} class="-z-[100] absolute inset-0 from-base-100 via-base-100 to-black opacity-50">
         <div class:bg-gradient-to-b={!hide} class="relative h-full from-base-100 via-base-100 to-theme-color blur-2xl"></div>
     </div>
-    <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
+    <div>
+        <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
+        {#if !invalidUser && !hide}
+            <div transition:slide class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex justify-around -mt-4">
+                <div class="add-to-list">
+                    <Icon class="mr-2 inline-block align-middle" data={faPlus}/><button class="inline-block align-middle" on:click|stopPropagation={() => {hideTrackList = !hideTrackList}}>
+                        Add to list
+                    </button>
+                    <TrackLists classes="" bind:hide={hideTrackList} trackType="track" trackArtist={trackData?.album?.artists[0]?.name} trackName={trackData?.name} trackId={$page.params.id} trackImage={trackData?.album?.images[0]?.url}/>    
+                </div>
+
+                <div class="like">
+                    <button class="inline-block align-middle">Like </button><Icon class="ml-2 inline-block align-middle" data={faHeart}/>
+                </div>
+            </div>    
+        {/if}
+    </div>
     <div class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex w-full">
         <div class="my-8 basis-3/5">
             <h1 class="max-w-[90%] text-6xl break-words font-black">{trackData?.name}</h1> 
@@ -968,7 +989,7 @@
             {:else}
                 <p class="my-1 mb-6 italic">based on {trackData?.numRatings} ratings</p>
             {/if}
-            <a class="text-lg rounded-lg drop-shadow-xl transition-all hover:-translate-y-8 px-4 py-2 bg-black" href={trackData?.album?.external_urls}><Icon data={faPlayCircle} class="mr-2"/>Listen to {trackData?.album?.name} on Spotify</a>
+            <a class="text-lg rounded-lg drop-shadow-xl transition-all hover:-translate-y-1 px-4 py-2 bg-black" href={trackData?.album?.external_urls}><Icon data={faPlayCircle} class="mr-2"/>Listen to {trackData?.album?.name} on Spotify</a>
         </div>
         <div class="my-8 mr-6 float-right basis-2/5">
             <div class="text-sm transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black" id="detail-box">
@@ -1237,13 +1258,15 @@
 {#if recommendedTracks.length > 1}
     <div class="mx-6">
         <h2 class="text-4xl font-black mb-4">Recommendations</h2>
-        <div class="w-full h-fit whitespace-nowrap overflow-x-auto fade-in-left-right">
-            {#each recommendedTracks as track}
-                {#if track.id !== $page.params.id}
-                    <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.album.images[1].url} alt="" title={track.name} artist={track.album.artists[0].name}/>
-                {/if}
-            {/each}
-        </div>    
+        <Carousel>
+            <svelte:fragment slot="items">
+                {#each recommendedTracks as track}
+                    {#if track.id !== $page.params.id}
+                        <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.album.images[1].url} alt="" title={track.name} artist={track.album.artists[0].name}/>
+                    {/if}
+                {/each}
+            </svelte:fragment>
+        </Carousel>
     </div>
     <div class="mx-6 divider"></div>
 {/if}
@@ -1251,11 +1274,13 @@
 {#if moreTracksByArtist.length !== 0}
     <div class="mx-6">
         <h2 class="text-4xl font-black mb-4">More tracks by {trackData?.album?.artists[0]?.name}</h2>
-        <div class="w-full h-full overflow-y-visible whitespace-nowrap overflow-x-auto fade-in-left-right">
-            {#each moreTracksByArtist as track}
-                <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
-            {/each}
-        </div>
+        <Carousel>
+            <svelte:fragment slot="items">
+                {#each moreTracksByArtist as track}
+                    <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+                {/each}
+            </svelte:fragment>
+        </Carousel>
     </div>
 
     <div class="mx-6 divider"></div>
@@ -1263,29 +1288,15 @@
 
 <div class="mx-6">
     <h2 class="text-4xl font-black mb-4">More tracks</h2>
-    <div class="w-full h-fit whitespace-nowrap overflow-x-auto fade-in-left-right">
-        {#each moreTracks as track}
-            <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
-        {/each}
-    </div>
+    <Carousel>
+        <svelte:fragment slot="items">
+            {#each moreTracks as track}
+                <TrackThumbnail classes="!whitespace-normal mr-1" href="/track/{track.id}" src={track.image} alt="" title={track.name} artist={track.artists[0].name}/>
+            {/each}
+        </svelte:fragment>
+    </Carousel>
 </div>
 
 <style>
-    .fade-in-left-right {
-        mask-image: linear-gradient(transparent, black 20%, black 80%, transparent 100%);
-        -webkit-mask-image: linear-gradient( to right,transparent, black 20%, black 80%, transparent 100%);
-    }
-/* 
-    .fade-in-top-bottom {
-        mask-image: linear-gradient(
-            transparent,
-            black 20%,
-            black 80%,
-            transparent 100%);
-        -webkit-mask-image: linear-gradient(
-            transparent,
-            black 20%,
-            black 80%,
-            transparent 100%);
-    } */
+    
 </style>
