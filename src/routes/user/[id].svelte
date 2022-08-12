@@ -511,14 +511,33 @@
             </div>
             <div class="lists">
                 <h2 class="text-4xl inline-block font-black">Latest lists</h2>
-                <div class="content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
-                    {#each usersLists as list}
-                        <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
-                    {/each}
-                    {#if usersLists.length === 0}
-                        <p>No lists found.</p>
-                    {/if}
-                </div>
+                {#if usersLists.length >= 4}
+                    <div class="fade-bottom content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
+                        {#each usersLists.slice(0, 4) as list, id}
+                            {#if id === 1 || id === 3}
+                                <div class="p-4 flex justify-end text-right">
+                                    <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                                </div>
+                            {:else}
+                                <div class="p-4">
+                                    <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                                </div>
+                            {/if}
+                        {/each}
+                    </div>
+                    <div class="flex justify-center relative -top-8 opacity-50">
+                        <a href="/user/{$page.params.id}/lists/all" class="hover:-translate-y-1 transition-all text-2xl font-bold">View all</a>
+                    </div>
+                {:else}
+                    <div class="content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
+                        {#each usersLists as list}
+                            <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                        {/each}
+                    </div>
+                {/if}
+                {#if usersLists.length === 0}
+                    <p class="mt-4">No lists found.</p>
+                {/if}
             </div>
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>

@@ -223,18 +223,22 @@
                 </div>
             {/if}
         </div>
-        <div class="tracks mt-6 grid grid-flow-row-dense grid-cols-6 gap-4">
-            {#each pages[currentPage] as track}
-                <TrackThumbnail href="/{track.type}/{track.id}" artist="{track.artist}" title="{track.name}" src="{track.image}" alt="Cover of {track.name} by {track.artist}" classes=""/>
-            {/each}
-        </div>
-        <div class="button-group mt-4 text-center">
-            {#each paginationNumbers as page}
-                <button class="first:rounded-tl-lg first:rounded-bl-lg last:rounded-tr-lg last:rounded-br-lg hover:bg-black hover:scale-110 transition-all btn btn-md bg-black" on:click={() => {
-                    currentPage = page - 1;
-                }}>{page}</button>
-            {/each}
-        </div>
+        {#if listData?.tracks?.length !== 0}
+            <div class="tracks mt-6 grid grid-flow-row-dense grid-cols-6 gap-4">
+                {#each pages[currentPage] as track}
+                    <TrackThumbnail href="/{track.type}/{track.id}" artist="{track.artist}" title="{track.name}" src="{track.image}" alt="Cover of {track.name} by {track.artist}" classes=""/>
+                {/each}
+            </div>
+            <div class="button-group mt-4 text-center">
+                {#each paginationNumbers as page}
+                    <button class="first:rounded-tl-lg first:rounded-bl-lg last:rounded-tr-lg last:rounded-br-lg hover:bg-black hover:scale-110 transition-all btn btn-md bg-black" on:click={() => {
+                        currentPage = page - 1;
+                    }}>{page}</button>
+                {/each}
+            </div>
+        {:else}
+            <p class="mt-6">No tracks found.</p>
+        {/if}
         <div class="divider"></div>
         <div class="shoutbox">
             <h2 class="text-4xl mb-4 font-black">Shoutbox</h2>

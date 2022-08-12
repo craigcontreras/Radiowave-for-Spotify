@@ -5,6 +5,8 @@
 	import Rating from './Rating.svelte';
     import { doc, getDoc } from "firebase/firestore";
     import { db } from "../../firebase.js";
+    import { faComment } from '@fortawesome/free-solid-svg-icons/faComment';
+    import Icon from 'svelte-awesome';
 
     export let reviewRating;
     export let reviewMessage;
@@ -38,14 +40,18 @@
     <p class="text-sm break-all">Written on {new Date(reviewDate?.seconds * 1000)}</p>
     <div id="likes-comments-stats">
         {#if showLikeText}
-            <Likes fromDoc={likeDoc} {reviewType} {trackId} {trackReview} {reviewAuthor}/>
+            <div class="like-button inline-block align-middle mr-1">
+                <Likes fromDoc={likeDoc} {reviewType} {trackId} {trackReview} {reviewAuthor}/>
+            </div>
         {/if}
         {#if showCommentText}
-            <button on:click|preventDefault={() => {
-                if (browser) {
-                    goto(commentHref);
-                }
-            }}>Comment</button>
+            <div class="comment-button inline-block align-middle">
+                <Icon class="mr-2 align-middle inline-block" data={faComment}/><button class="inline-block align-middle" on:click|preventDefault={() => {
+                    if (browser) {
+                        goto(commentHref);
+                    }
+                }}>Comment</button>
+            </div>
         {/if}
     </div>
 </div>
