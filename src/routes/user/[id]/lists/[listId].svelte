@@ -1,4 +1,5 @@
 <script context="module">
+	import SEO from './../../../../components/utilities/SEO.svelte';
     import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
     import { db, auth } from "../../../../firebase.js";
 
@@ -156,6 +157,8 @@
         return arr;
     }
 </script>
+
+<SEO height=460 width=460 title="{listData?.name} by {userData?.displayName} - Playlist - Radiowave for Spotify" description="View {userData?.data?.displayName}'s {listData?.name} playlist, their top artists & tracks, and their latest reviews on Radiowave for Spotify." image="{userData?.photoURL}"/>
 
 <div class="mx-6 page">
     <div class="mt-2 text-sm breadcrumbs">
