@@ -1,19 +1,29 @@
 <script>
-	import { goto } from '$app/navigation';
-    import { page } from '$app/stores';
-	import { browser } from '$app/env';
 	import includes from 'lodash/includes.js';
-    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove, increment, setDoc } from "firebase/firestore";
+    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove, increment, setDoc, deleteField } from "firebase/firestore";
     import { auth, db } from '../../firebase.js';
     import { onMount } from 'svelte';
     import { get } from 'svelte/store';
     import { session } from '$app/stores';
+    import Icon from 'svelte-awesome';
+    import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart';
 
     export let fromDoc;
+    export let placement = "left";
     export let reviewType = "";
     export let trackId = "";
     export let reviewAuthor = "";
     export let trackReview = true;
+    export let album = false;
+    export let track = false;
+    export let list = false;
+
+    export let href = "";
+    export let name = "";
+    export let artist = "";
+    export let image = "";
+
+    export let textSize = "text-base";
 
     const reviewRef = doc(db, fromDoc);
     let userLoaded = false;
@@ -113,6 +123,48 @@
                 await setDoc(doc(db, `review-statistics/${trackId}-${reviewAuthor}`), statisticsData, {
                     merge: true
                 });
+            } else if (album) {
+                let likedAlbums = {};
+                likedAlbums[trackId] = {
+                    name,
+                    id: trackId,
+                    artist,
+                    image,
+                    href
+                }
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedAlbums,
+                }, {
+                    merge: true
+                });
+            } else if (track) {
+                let likedTracks = {};
+                likedTracks[trackId] = {
+                    name,
+                    id: trackId,
+                    artist,
+                    image,
+                    href
+                }
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedTracks,
+                }, {
+                    merge: true
+                });
+            } else if (list) {
+                let likedLists = {};
+                likedLists[trackId] = {
+                    name,
+                    id: trackId,
+                    author: artist,
+                    image,
+                    href
+                }
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedLists,
+                }, {
+                    merge: true
+                });
             }
         } catch (e) {
             console.log("Unable to like this");
@@ -167,6 +219,33 @@
                 await setDoc(doc(db, `review-statistics/${trackId}-${reviewAuthor}`), statisticsData, {
                     merge: true
                 });
+            } else if (album) {
+                let likedAlbums = {};
+                likedAlbums[trackId] = deleteField();
+                
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedAlbums,
+                }, {
+                    merge: true
+                });
+            } else if (track) {
+                let likedTracks = {};
+                likedTracks[trackId] = deleteField();
+
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedTracks,
+                }, {
+                    merge: true
+                });
+            } else if (list) {
+                let likedLists = {};
+                likedLists[trackId] = deleteField();
+
+                await setDoc(doc(db, `users/${currentUserId}`), {
+                    likedLists,
+                }, {
+                    merge: true
+                });
             }
         } catch (e) {
             console.log("Unable to unlike this");
@@ -177,11 +256,19 @@
 {#if !invalidUser}
     {#if liked}
         <button on:click|preventDefault={unlike}>
-            <p>Unlike</p>
+            {#if placement === "left"}
+                <Icon class="mr-2 align-middle inline-block" data={faHeart}/><p class="{textSize} inline-block align-middle">Unlike</p>
+            {:else}
+                <p class="{textSize} align-middle inline-block">Unlike</p><Icon class="ml-2 align-middle inline-block" data={faHeart}/>
+            {/if}
         </button>
     {:else}
         <button on:click|preventDefault={like}>
-            <p>Like</p>
+            {#if placement === "left"}
+                <Icon class="mr-2 align-middle inline-block" data={faHeart}/><p class="{textSize} inline-block align-middle">Like</p>
+            {:else}
+                <p class="{textSize} align-middle inline-block">Like</p><Icon class="ml-2 align-middle inline-block" data={faHeart}/>
+            {/if}
         </button>
     {/if}
 {/if}

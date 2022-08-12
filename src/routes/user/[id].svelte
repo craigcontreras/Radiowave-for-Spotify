@@ -45,7 +45,22 @@
             const usersListsQuery = query(collection(db, `users/${params.id}/lists`), orderBy("lastModified", "desc"), limit(4));
             const usersListsDocs = await getDocs(usersListsQuery);
             usersListsDocs.forEach(doc => {
-                usersLists.push(doc.data());
+                let fiveImages = [];
+                if (doc.data().tracks.length < 5) {
+                    for (const track of doc.data().tracks) {
+                        fiveImages.push(track.image);
+                        fiveImages = fiveImages;
+                    }
+                } else {
+                    for (const track of doc.data().tracks.slice(0, 5)) {
+                        fiveImages.push(track.image);
+                        fiveImages = fiveImages;
+                    }
+                }
+                usersLists.push({
+                    ...doc.data(),
+                    fiveImages,
+                });
                 usersLists = usersLists;
             })
         } else {
@@ -496,11 +511,9 @@
             </div>
             <div class="lists">
                 <h2 class="text-4xl inline-block font-black">Latest lists</h2>
-                <div class="content grid grid-flow-row-dense grid-cols-2 gap-4">
+                <div class="content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
                     {#each usersLists as list}
-                        {#each list.tracks as track}
-                            <List name={list.name} images={[track.image, track.image, track.image, track.image, track.image]}/>
-                        {/each}
+                        <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
                     {/each}
                     {#if usersLists.length === 0}
                         <p>No lists found.</p>

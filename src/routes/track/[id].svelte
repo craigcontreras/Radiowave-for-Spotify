@@ -155,6 +155,7 @@
     import { get } from 'svelte/store';
     import Seo from '../../components/utilities/SEO.svelte';
     import TrackLists from '../../components/interactive/TrackLists.svelte';
+import Likes from '../../components/interactive/Likes.svelte';
 
     let hideTrackList = true;
     let inChangeMode = false;
@@ -964,7 +965,7 @@
                 </div>
 
                 <div class="like">
-                    <button class="inline-block align-middle">Like </button><Icon class="ml-2 inline-block align-middle" data={faHeart}/>
+                    <Likes name="{trackData?.name}" artist="{trackData?.album?.artists[0]?.name}" image="{trackData?.album?.images[0]?.url}" href="/track/{$page.params.id}" fromDoc="tracks/{$page.params.id}" track={true} trackId={$page.params.id} trackReview={false} placement="right"/>
                 </div>
             </div>    
         {/if}
@@ -1298,5 +1299,5 @@
 </div>
 
 <style>
-    
+
 </style>

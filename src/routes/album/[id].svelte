@@ -135,6 +135,7 @@
     import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
     import { get } from 'svelte/store';
     import TrackLists from '../../components/interactive/TrackLists.svelte';
+    import Likes from '../../components/interactive/Likes.svelte';
 
     export let albumData;
     export let userId = "";
@@ -760,7 +761,7 @@
                 </div>
 
                 <div class="like">
-                    <button class="inline-block align-middle">Like </button><Icon class="ml-2 inline-block align-middle" data={faHeart}/>
+                    <Likes name="{albumData?.name}" artist="{albumData?.artists[0]?.name}" image="{albumData?.images[0]?.url}" href="/album/{$page.params.id}" fromDoc="albums/{$page.params.id}" album={true} trackId={$page.params.id} trackReview={false} placement="right"/>
                 </div>
             </div>    
         {/if}
