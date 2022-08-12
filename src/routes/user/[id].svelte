@@ -530,8 +530,16 @@
                     </div>
                 {:else}
                     <div class="content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
-                        {#each usersLists as list}
-                            <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                        {#each usersLists as list, id}
+                            {#if id === 1 || id === 3}
+                                <div class="p-4 flex justify-end text-right">
+                                    <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                                </div>
+                            {:else}
+                                <div class="p-4">
+                                    <List href="/user/{$page.params.id}/lists/{list.id}" name={list.name} images={list.fiveImages}/>
+                                </div>
+                            {/if}
                         {/each}
                     </div>
                 {/if}
