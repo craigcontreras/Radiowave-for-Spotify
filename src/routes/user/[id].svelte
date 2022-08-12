@@ -504,7 +504,7 @@
                     </div>
                 </div>
                 {#if chartLoaded}
-                    <div transition:slide class="h-[85%] w-[85%] text-center hover:-translate-y-1 transition-all px-4 graph mt-6">
+                    <div class="h-[85%] w-[85%] text-center hover:-translate-y-1 transition-all px-4 graph mt-6">
                         <div class="" use:chartMethod={options}></div>
                     </div>
                 {/if}    

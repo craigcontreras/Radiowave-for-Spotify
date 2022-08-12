@@ -82,7 +82,6 @@
     import Likes from "../../../../components/interactive/Likes.svelte";
     import { onMount } from "svelte";
     import { browser } from "$app/env";
-import { list } from "firebase/storage";
 
     export let invalidUser = true;
     export let isOwner = false;
@@ -93,8 +92,10 @@ import { list } from "firebase/storage";
     let inChangeMode = false;
     let newName;
     let newDescription;
-    let pages = paginate(listData?.tracks, 18);
-    let currentPage = 0;
+    $: pages = paginate(listData?.tracks, 18);
+    $: currentPage = 0;
+    $: range = pageRange(currentPage, pages.length);
+    $: paginationNumbers = generatePageRange(range.start, range.end);
 
     onMount(() => {
         newName = listData?.name;
@@ -124,6 +125,35 @@ import { list } from "firebase/storage";
 
             return acc;
         }, []);
+    }
+
+    function pageRange(page, pageCount) {
+        let start = page - 2, end = page + 2;
+        if (end > pageCount) {
+            start -= (end - pageCount);
+            end = pageCount;
+        }
+
+        if (start <= 0) {
+            end += ((start - 1) * (-1));
+            start = 1;
+        }
+
+        end = end > pageCount ? pageCount : end;
+
+        console.log({start, end});
+
+        return { start, end };
+    }
+
+    function generatePageRange(start, end) {
+        let arr = [];
+        for (let i = start; i <= end; i++) {
+            arr.push(i);
+            arr = arr;
+        }
+
+        return arr;
     }
 </script>
 
@@ -193,11 +223,11 @@ import { list } from "firebase/storage";
                 <TrackThumbnail href="/{track.type}/{track.id}" artist="{track.artist}" title="{track.name}" src="{track.image}" alt="Cover of {track.name} by {track.artist}" classes=""/>
             {/each}
         </div>
-        <div class="button-group">
-            {#each pages as page, id}
-                <button class="btn btn-xs" on:click={() => {
-                    currentPage = id;
-                }}>{id + 1}</button>
+        <div class="button-group mt-4 text-center">
+            {#each paginationNumbers as page}
+                <button class="first:rounded-tl-lg first:rounded-bl-lg last:rounded-tr-lg last:rounded-br-lg hover:bg-black hover:scale-110 transition-all btn btn-md bg-black" on:click={() => {
+                    currentPage = page - 1;
+                }}>{page}</button>
             {/each}
         </div>
         <div class="divider"></div>
