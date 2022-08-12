@@ -212,11 +212,13 @@
                     <Likes name="{listData?.name}" artist="{$page.params.id}" image={fiveImages} href="/user/{$page.params.id}/lists/{$page.params.listId}" textSize="text-sm" fromDoc="users/{$page.params.id}/lists/{$page.params.listId}" list={true} trackId="{$page.params.listId}" trackReview={false} placement="right"/>
                 </div>
             {/if}
-            <div class="change float-right inline-block align-middle">
-                <button on:click={() => {
-                    inChangeMode = !inChangeMode;
-                }}>Change</button>
-            </div>
+            {#if isOwner}
+                <div class="change float-right inline-block align-middle">
+                    <button on:click={() => {
+                        inChangeMode = !inChangeMode;
+                    }}>Change</button>
+                </div>
+            {/if}
         </div>
         <div class="tracks mt-6 grid grid-flow-row-dense grid-cols-6 gap-4">
             {#each pages[currentPage] as track}
