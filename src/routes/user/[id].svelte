@@ -511,7 +511,7 @@
             </div>
             <div class="lists">
                 <h2 class="text-4xl inline-block font-black">Latest lists</h2>
-                {#if usersLists.length >= 4}
+                {#if usersLists.length > 4}
                     <div class="fade-bottom content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
                         {#each usersLists.slice(0, 4) as list, id}
                             {#if id === 1 || id === 3}
@@ -551,7 +551,7 @@
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
             </div>
             <div class="likes">
-
+                <h2 class="text-4xl font-black mb-4">Latest likes</h2>
             </div>
             <div class="tags">
 
