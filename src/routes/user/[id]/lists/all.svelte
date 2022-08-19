@@ -1,18 +1,44 @@
+<script context="module">
+    import { db, auth } from "../../../../firebase.js";
+    import { collection, orderBy, query, getDocs, limit, startAfter, getDoc, doc } from "firebase/firestore";
+
+    let userData = {};
+
+    export async function load({params}) {
+        await loginToFirebase(params);
+        return {
+            props: {
+                userData,
+            }
+        }
+    }
+
+    async function loginToFirebase(params) {
+        const userDataDoc = await getDoc(doc(db, `users/${params.id}`));
+        if (userDataDoc.exists()) {
+            userData = userDataDoc.data();
+        } else {
+            throw new Error("User does not exist");
+        }
+
+        return "Completed";
+    }
+</script>
+
 <script>
+	import SEO from './../../../../components/utilities/SEO.svelte';
 	import List from './../../../../components/static/List.svelte';
 	import { page } from '$app/stores';
-    import { collection, orderBy, query, getDocs, limit, startAfter, getDoc, doc } from "firebase/firestore";
-    import { db, auth } from "../../../../firebase.js";
     import { onMount } from 'svelte';
 
     let tracks = [];
-    let userData = {};
+    export let userData = {};
 
     let lastVisible;
     let currentListSize;
 
     onMount(() => {
-        loginToFirebase();
+        loginToFirebaseClientside();
 
         window.onscroll = function (event) {
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight && currentListSize >= 6) {
@@ -44,14 +70,7 @@
         tracks = tracks;
     }
 
-    async function loginToFirebase() {
-        const userDataDoc = await getDoc(doc(db, `users/${$page.params.id}`));
-        if (userDataDoc.exists()) {
-            userData = userDataDoc.data();
-        } else {
-            throw new Error("User does not exist");
-        }
-
+    async function loginToFirebaseClientside() {
         const allLabelsRef = collection(db, `users/${$page.params.id}/lists`);
         const allLabelsQuery = query(allLabelsRef, orderBy("lastModified", "asc"), limit(16));
         const allLabels = await getDocs(allLabelsQuery);
@@ -83,6 +102,8 @@
         return fiveImages;
     }
 </script>
+
+<SEO height=460 width=460 title="{userData?.displayName} - Lists - Users - Radiowave for Spotify" description="View all of the lists created by {userData?.data?.displayName}, alongside their Spotify stats like recently played, top artists & tracks, and their latest reviews on Radiowave for Spotify." image="{userData?.data?.photoURL}"/>
 
 <div class="mx-6 content">
     <div class="mt-2 text-sm breadcrumbs">

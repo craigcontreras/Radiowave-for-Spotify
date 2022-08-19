@@ -92,6 +92,8 @@
     import DOMPurify from "isomorphic-dompurify";
     import { get } from 'svelte/store';
     import List from '../../components/static/List.svelte';
+import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
+import values from 'lodash/values';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -111,6 +113,7 @@
     let recentPlays = [];
     let dateRange = "short_term";
     let dateRangeArtists = "short_term";
+    let likeType = "albums";
 
     const pusher = new Pusher("5e07f212c04ae7ccbb27", {
         cluster: "us2"
@@ -511,7 +514,7 @@
             </div>
             <div class="lists">
                 <h2 class="text-4xl inline-block font-black">Latest lists</h2>
-                {#if usersLists.length > 4}
+                {#if usersLists.length >= 4}
                     <div class="fade-bottom content mt-4 grid grid-flow-row-dense grid-cols-2 gap-4">
                         {#each usersLists.slice(0, 4) as list, id}
                             {#if id === 1 || id === 3}
@@ -547,11 +550,45 @@
                     <p class="mt-4">No lists found.</p>
                 {/if}
             </div>
+            <div class="likes">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-4xl inline-block font-black">Latest likes</h2>
+                    <div class="inline-block">
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tl-lg rounded-bl-lg" on:click={() => {
+                            likeType = "tracks";
+                        }}>tracks</button>
+                        <button class="px-2 py-1 bg-stone-800 hover:bg-stone-900 transition-all rounded-tr-lg rounded-br-lg" on:click={() => {
+                            likeType = "albums";                     
+                        }}>albums</button>
+                    </div>
+                </div>
+                <div class="grid grid-flow-row-dense grid-cols-6 gap-2">
+                    {#if likeType === "tracks"}
+                        {#if userData?.likedTracks?.length === 0}
+                            <p>No track likes found.</p>
+                        {:else}
+                            {#each Object.values(userData?.likedTracks) as like}
+                                <TrackThumbnail href="/track/{like.id}" src="{like.image}" alt="Album cover of {like.name} by {like.artist}" title="{like.name}" artist="{like.artist}" classes="" />
+                            {/each}
+                        {/if}
+                    {:else}
+                        {#if userData?.likedAlbums?.length === 0}
+                            <p>No album likes found.</p>
+                        {:else}
+                            {#each Object.values(userData?.likedAlbums) as like}
+                                <TrackThumbnail href="/album/{like.id}" src="{like.image}" alt="Album cover of {like.name} by {like.artist}" title="{like.name}" artist="{like.artist}" classes="" />
+                            {/each}
+                        {/if}
+                    {/if}
+                </div>
+                {#if userData?.likedAlbums?.length >= 12 || userData?.likedTracks?.length >= 12}
+                    <div class="flex justify-center relative -top-8 opacity-50">
+                        <a href="/user/{$page.params.id}/likes" class="hover:-translate-y-1 transition-all text-2xl font-bold">View all</a>
+                    </div>
+                {/if}
+            </div>
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
-            </div>
-            <div class="likes">
-                <h2 class="text-4xl font-black mb-4">Latest likes</h2>
             </div>
             <div class="tags">
 
