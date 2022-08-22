@@ -416,6 +416,7 @@ async function startCronJobs(uuid) {
             
             pushActivityToFirebase(arr, uuid);
         }).catch(err => {
+            console.log("first try: ", err);
             //if the error code is 401, that means the access token is invalid
             //get a new access token by using the refresh
             if (err.response?.status === 401) {
@@ -460,7 +461,7 @@ async function startCronJobs(uuid) {
             
                         pushActivityToFirebase(arr, uuid);
                     }).catch(reason => {
-                        console.log("")
+                        console.log("second try: ", reason);
                     })
                 })    
             }
@@ -494,6 +495,7 @@ async function startCronJobs(uuid) {
             
             pushActivityToFirebase(arr, uuid);
         }).catch(err => {
+            console.log("first try ", err);
             //if the error code is 401, that means the access token is invalid
             //get a new access token by using the refresh
             if (err.response?.status === 401) {
@@ -538,7 +540,7 @@ async function startCronJobs(uuid) {
             
                         pushActivityToFirebase(arr, uuid);
                     }).catch(reason => {
-                        console.log("")
+                        console.log("first try ", reason);
                         //otherwise, stop the cron job entirely
                         fiveMin.stop();
                     })

@@ -1,6 +1,6 @@
 <script>
 	import includes from 'lodash/includes.js';
-    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove, increment, setDoc, deleteField } from "firebase/firestore";
+    import { doc, getDoc, runTransaction, arrayUnion, arrayRemove, increment, setDoc, deleteField, serverTimestamp } from "firebase/firestore";
     import { auth, db } from '../../firebase.js';
     import { onMount } from 'svelte';
     import { get } from 'svelte/store';
@@ -130,7 +130,8 @@
                     id: trackId,
                     artist,
                     image,
-                    href
+                    href,
+                    likedOn: serverTimestamp(),
                 }
                 await setDoc(doc(db, `users/${currentUserId}`), {
                     likedAlbums,
@@ -144,7 +145,8 @@
                     id: trackId,
                     artist,
                     image,
-                    href
+                    href,
+                    likedOn: serverTimestamp(),
                 }
                 await setDoc(doc(db, `users/${currentUserId}`), {
                     likedTracks,
@@ -158,7 +160,8 @@
                     id: trackId,
                     author: artist,
                     image,
-                    href
+                    href,
+                    likedOn: serverTimestamp(),
                 }
                 await setDoc(doc(db, `users/${currentUserId}`), {
                     likedLists,

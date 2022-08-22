@@ -68,7 +68,7 @@
         {#if likeType === "albums"}
             <div class="grid grid-flow-row-dense grid-cols-6 gap-2">
                 {#each Object.values(userData?.likedAlbums) as like}
-                    <TrackThumbnail href="/track/{like.id}" src="{like.image}" alt="Album cover of {like.name} by {like.artist}" title="{like.name}" artist="{like.artist}" classes="" />
+                    <TrackThumbnail href="/album/{like.id}" src="{like.image}" alt="Album cover of {like.name} by {like.artist}" title="{like.name}" artist="{like.artist}" classes="" />
                 {/each}
             </div>
         {:else}

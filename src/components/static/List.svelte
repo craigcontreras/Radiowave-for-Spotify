@@ -14,7 +14,11 @@
             <img height=80 width=80 class="{images[4] ? "" : "hidden"} border-base-100 z-[5] border-2 inline h-[80px] -ml-[3rem] rounded-lg drop-shadow-xl" loading="lazy" src="{images[4] || ""}" alt="">
         </div>
     </a>
-    <a {href} class="hover:-translate-y-1 transition-all font-bold text-lg">{name}</a>
+    {#if name.length > 12}
+        <a {href} class="hover:-translate-y-1 transition-all font-bold text-lg">{name.substring(0, 13)}...</a>
+    {:else}
+        <a {href} class="hover:-translate-y-1 transition-all font-bold text-lg">{name}</a>
+    {/if}
 </div>
 
 <style>

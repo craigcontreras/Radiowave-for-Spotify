@@ -155,6 +155,7 @@
                 trackName,
                 trackAuthor,
                 trackHref,
+                type: reviewType
             });
             batch.set(doc(db, `review-statistics/${trackId}-${userId}`), {
                 author: userId,

@@ -9,9 +9,11 @@
     let userData;
     let invalidUser = true;
     let usersLists = [];
+    let usersReviews = [];
 
     export async function load({params}) {
         usersLists = [];
+        usersReviews = [];
         await loginToFirebase(params);
         return {
             props: {
@@ -20,6 +22,7 @@
                 userData,
                 invalidUser,
                 usersLists,
+                usersReviews,
             }
         }
     }
@@ -62,7 +65,14 @@
                     fiveImages,
                 });
                 usersLists = usersLists;
-            })
+            });
+            const latestReviewRef = collection(db, `users/${params.id}/reviews`);
+            const latestReviewQuery = query(latestReviewRef, orderBy("date", "desc"), limit(4));
+            const latestReviewDocs = await getDocs(latestReviewQuery);
+            latestReviewDocs.forEach(doc => {
+                usersReviews.push(doc.data());
+                usersReviews = usersReviews;
+            });
         } else {
             throw new Error("User does not exist");
         }
@@ -92,8 +102,8 @@
     import DOMPurify from "isomorphic-dompurify";
     import { get } from 'svelte/store';
     import List from '../../components/static/List.svelte';
-import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
-import values from 'lodash/values';
+    import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
+import Review from '../../components/static/Review.svelte';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -135,6 +145,7 @@ import values from 'lodash/values';
     let genresLifetimeLabels = [];
 
     export let usersLists = [];
+    export let usersReviews = [];
 
     let options = {
         chart: {
@@ -218,10 +229,6 @@ import values from 'lodash/values';
     function enterChangeMode() {
         changeMode = !changeMode;
         biographyCollapsed = true;
-    }
-
-    async function fetchRecentReviews() {
-
     }
 </script>
 
@@ -589,6 +596,30 @@ import values from 'lodash/values';
             </div>
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
+                <div class="flex flex-col gap-1 fade-bottom">
+                    {#each usersReviews as review}
+                        <Review 
+                            userPage={true}
+                            showLikeText={false}
+                            showCommentText={true}
+                            commentHref={`${review?.type?.replaceAll("s", "") || ""}/reviews/${review.trackId}/${review.author}`} 
+                            likeDoc={`${review.author}`} 
+                            reviewRating={review.rating} 
+                            reviewMessage={review.message} 
+                            reviewAuthor={review.author} 
+                            reviewDate={review.date}
+                            trackArtist={review.trackAuthor}
+                            trackName={review.trackName}
+                            trackImage={review.trackHref}
+                            reviewType={review.type}
+                            trackId={review.trackId}/>
+                    {/each}
+                </div>
+                {#if usersReviews.length === 4}
+                    <div class="flex justify-center relative -top-8 opacity-50">
+                        <a href="/user/{$page.params.id}/reviews" class="hover:-translate-y-1 transition-all text-2xl font-bold">View all</a>
+                    </div>
+                {/if}
             </div>
             <div class="tags">
 

@@ -1,6 +1,4 @@
 <script>
-	import { goto } from '$app/navigation';
-	import { browser } from '$app/env';
 	import ProfileThumbnail from './../../components/thumbnails/ProfileThumbnail.svelte';
     import { collection, orderBy, query, getDocs, limit, startAfter } from "firebase/firestore";
     import { db, auth } from "../../firebase";
