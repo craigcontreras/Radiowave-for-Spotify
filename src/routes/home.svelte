@@ -10,6 +10,7 @@
     let trendingReviews = [];
     let latestReleases = [];
     let underTheRadar = [];
+    let userRecommendations = [];
 
     export async function load({params}) {
         tracks = [];
@@ -23,7 +24,8 @@
                 tracks,
                 trendingReviews,
                 latestReleases,
-                underTheRadar
+                underTheRadar,
+                userRecommendations
             }
         }
     }
@@ -41,6 +43,16 @@
         });
     }
 
+    function firstN(obj, n) {
+        return Object.keys(obj)
+            .sort()
+            .slice(0, n)
+            .reduce(function(memo, current) {
+                memo[current] = obj[current];
+                return memo;
+            }, {});
+    }
+
     async function grabLatestReleasesFromSpotify(access) {
         try {
             const releases = await axios.get("https://api.spotify.com/v1/browse/new-releases", {
@@ -56,6 +68,70 @@
         } catch (err) {
             await grabLatestReleasesFromFirebase();
         }
+        return "Completed";
+    }
+
+    async function grabRecommendationsFromSpotify(access, topArtistsDoc, topTracksDoc, topGenresFourWeeks) {
+        const user = await getCurrentUser();
+        if (user !== null) {
+            let topGenres = [];
+            let topTracks = [];
+            let topArtists = [];
+            
+            if (Object.values(topGenresFourWeeks).length > 5) {
+                const genresObj = firstN(topGenresFourWeeks, 5);
+                for (const genre in genresObj) {
+                    topGenres.push(genre);
+                    topGenres = topGenres;
+                }
+            } else {
+                for (const genre in topGenresFourWeeks) {
+                    topGenres.push(genre);
+                    topGenres = topGenres;
+                }
+            }
+
+            if (topArtistsDoc.length > 5) {
+                for (let i = 0; i < 5; i++) {
+                    topArtists.push(topArtistsDoc[i]);
+                    topArtists = topArtists;
+                }
+            } else {
+                for (const artist of topArtistsDoc) {
+                    topArtists.push(artist);
+                    topArtists = topArtists;
+                }
+            }
+
+            if (topTracksDoc.length > 5) {
+                for (let i = 0; i < 5; i++) {
+                    topTracks.push(topTracksDoc[i]);
+                    topTracks = topTracks;
+                }
+            } else {
+                for (const track of topTracksDoc) {
+                    topTracks.push(track);
+                    topTracks = topTracks;
+                }
+            }
+
+            try {
+                const recommendations = await axios.get("https://api.spotify.com/v1/recommendations", {
+                    headers: {
+                        Authorization: `Bearer ${access}`
+                    },
+                    params: {
+                        limit: 16,
+                        seed_artists: `${topArtists[0]},${topArtists[1]}`,
+                        seed_genres: topGenres[0],
+                        seed_tracks: `${topTracks[0]},${topTracks[1]}`,
+                    }
+                });
+                userRecommendations = recommendations.data.tracks;
+            } catch (err) {
+            }
+        }
+
         return "Completed";
     }
 
@@ -99,6 +175,7 @@
             invalidUser = false;
             const userDoc = await getDoc(doc(db, `users/${user.uid}`));
             await grabLatestReleasesFromSpotify(userDoc.data().access);
+            await grabRecommendationsFromSpotify(userDoc.data().access, userDoc.data().topArtists, userDoc.data().topTracks, userDoc.data().genresFourWeeks);
         } else {
             await grabLatestReleasesFromFirebase();
         }
@@ -147,6 +224,7 @@
     export let tracks = [];
     export let invalidUser = false;
     export let underTheRadar = [];
+    export let userRecommendations = [];
 </script>
 
 <SEO title="Home - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
@@ -178,6 +256,21 @@
                         <BigTrackThumbnail title={releases.data.name}
                         artist={releases.data.primary_artist} src={releases.data.album.images[1].url} alt="" 
                         href="/track/{releases.id}" date={releases.data.album.release_date} classes=""/>
+                    {/each}
+                </div>
+            </div>
+        </div>
+        <div class="divider"></div>
+    {/if}
+    {#if !invalidUser}
+        <div class="recommendations">
+            <h2 class="text-4xl font-black mb-4">Recommendations</h2>
+            <div class="content">
+                <div class="grid grid-flow-row-dense grid-cols-8 gap-4">
+                    {#each userRecommendations as rec}
+                        <BigTrackThumbnail title={rec.name}
+                        artist={rec.artists[0].name} src={rec.album.images[1].url} alt="" 
+                        href="/track/{rec.id}" date={rec.album.release_date} classes=""/>
                     {/each}
                 </div>
             </div>

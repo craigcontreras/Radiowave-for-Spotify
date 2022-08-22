@@ -663,6 +663,9 @@
             <div class="recent-reviews mt-6">
                 <h2 class="text-4xl font-black mb-4">Latest reviews</h2>
                 <div class="flex flex-col gap-1 fade-bottom">
+                    {#if usersReviews.length === 0}
+                        <p>No reviews found.</p>
+                    {/if}
                     {#each usersReviews as review}
                         <Review 
                             userPage={true}

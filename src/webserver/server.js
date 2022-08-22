@@ -417,54 +417,50 @@ async function startCronJobs(uuid) {
             pushActivityToFirebase(arr, uuid);
         }).catch(err => {
             console.log("first try: ", err);
-            //if the error code is 401, that means the access token is invalid
-            //get a new access token by using the refresh
-            if (err.response?.status === 401) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", refresh);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
+            const params = new URLSearchParams();
+            params.append("grant_type", "refresh_token");
+            params.append("refresh_token", refresh);
+            params.append("client_id", id);
+            axios.post("https://accounts.spotify.com/api/token", params, {
+                headers: {
+                    "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            }).then(async (spotifyData) => {
+                //if we can refresh the access, then retry
+                const newAccess = spotifyData.data.access_token;
+                const newRefresh = spotifyData.data.refresh_token;
+
+                await db.collection("users").doc(uuid).set({
+                    access: newAccess,
+                    refresh: newRefresh
+                }, {
+                    merge: true 
+                }); 
+
+                axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                     headers: {
-                        "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then(async (spotifyData) => {
-                    //if we can refresh the access, then retry
-                    const newAccess = spotifyData.data.access_token;
-                    const newRefresh = spotifyData.data.refresh_token;
+                        Authorization: `Bearer ${newAccess}`
+                    }        
+                }).then(tracksData => {
+                    const items = tracksData.data.items;
+                    const arr = items.map(e => ({
+                        played_at: e.played_at,
+                        id: e.track.id,
+                        name: e.track.name,
+                        artist: e.tracks.artists[0].name,
+                        image: e.tracks.images[1].url,
+                    }));
 
-                    await db.collection("users").doc(uuid).set({
-                        access: newAccess,
-                        refresh: newRefresh
-                    }, {
-                        merge: true 
-                    }); 
-
-                    axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
-                        headers: {
-                            Authorization: `Bearer ${newAccess}`
-                        }        
-                    }).then(tracksData => {
-                        const items = tracksData.data.items;
-                        const arr = items.map(e => ({
-                            played_at: e.played_at,
-                            id: e.track.id,
-                            name: e.track.name,
-                            artist: e.tracks.artists[0].name,
-                            image: e.tracks.images[1].url,
-                        }));
-
-                        pusher.trigger("cache-recently-played", uuid, {
-                            data: arr
-                        });
-            
-                        pushActivityToFirebase(arr, uuid);
-                    }).catch(reason => {
-                        console.log("second try: ", reason);
-                    })
-                })    
-            }
+                    pusher.trigger("cache-recently-played", uuid, {
+                        data: arr
+                    });
+        
+                    pushActivityToFirebase(arr, uuid);
+                }).catch(reason => {
+                    console.log("second try: ", reason);
+                })
+            })    
         });
 
     //cron job that runs every 40 minutes
@@ -496,56 +492,52 @@ async function startCronJobs(uuid) {
             pushActivityToFirebase(arr, uuid);
         }).catch(err => {
             console.log("first try ", err);
-            //if the error code is 401, that means the access token is invalid
-            //get a new access token by using the refresh
-            if (err.response?.status === 401) {
-                const params = new URLSearchParams();
-                params.append("grant_type", "refresh_token");
-                params.append("refresh_token", refresh);
-                params.append("client_id", id);
-                axios.post("https://accounts.spotify.com/api/token", params, {
+            const params = new URLSearchParams();
+            params.append("grant_type", "refresh_token");
+            params.append("refresh_token", refresh);
+            params.append("client_id", id);
+            axios.post("https://accounts.spotify.com/api/token", params, {
+                headers: {
+                    "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            }).then(async (spotifyData) => {
+                //if we can refresh the access, then retry
+                const newAccess = spotifyData.data.access_token;
+                const newRefresh = spotifyData.data.refresh_token;
+
+                await db.collection("users").doc(uuid).set({
+                    access: newAccess,
+                    refresh: newRefresh
+                }, {
+                    merge: true 
+                }); 
+
+                axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
                     headers: {
-                        "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }).then(async (spotifyData) => {
-                    //if we can refresh the access, then retry
-                    const newAccess = spotifyData.data.access_token;
-                    const newRefresh = spotifyData.data.refresh_token;
+                        Authorization: `Bearer ${newAccess}`
+                    }        
+                }).then(tracksData => {
+                    const items = tracksData.data.items;
+                    const arr = items.map(e => ({
+                        played_at: e.played_at,
+                        id: e.track.id,
+                        name: e.track.name,
+                        artist: e.tracks.artists[0].name,
+                        image: e.tracks.images[1].url,
+                    }));
 
-                    await db.collection("users").doc(uuid).set({
-                        access: newAccess,
-                        refresh: newRefresh
-                    }, {
-                        merge: true 
-                    }); 
-
-                    axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
-                        headers: {
-                            Authorization: `Bearer ${newAccess}`
-                        }        
-                    }).then(tracksData => {
-                        const items = tracksData.data.items;
-                        const arr = items.map(e => ({
-                            played_at: e.played_at,
-                            id: e.track.id,
-                            name: e.track.name,
-                            artist: e.tracks.artists[0].name,
-                            image: e.tracks.images[1].url,
-                        }));
-
-                        pusher.trigger("cache-recently-played", uuid, {
-                            data: arr
-                        });
-            
-                        pushActivityToFirebase(arr, uuid);
-                    }).catch(reason => {
-                        console.log("first try ", reason);
-                        //otherwise, stop the cron job entirely
-                        fiveMin.stop();
-                    })
-                })    
-            }
+                    pusher.trigger("cache-recently-played", uuid, {
+                        data: arr
+                    });
+        
+                    pushActivityToFirebase(arr, uuid);
+                }).catch(reason => {
+                    console.log("first try ", reason);
+                    //otherwise, stop the cron job entirely
+                    fiveMin.stop();
+                })
+            });
         });
     });
 }
