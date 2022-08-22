@@ -154,7 +154,8 @@
     export let usersLists = [];
     export let usersReviews = [];
     export let userId = "";
-
+    
+    let followers = userData?.followers?.length || 0;
     let isFollowing = null;
 
     let options = {
@@ -252,6 +253,7 @@
                 following: arrayUnion(userId),
             }, { merge: true });
             isFollowing = await followPromise(userId);
+            followers++;
         } else {
             throw new Error("User is already followed");
         }
@@ -266,6 +268,7 @@
                 following: arrayRemove(userId),
             }, { merge: true });
             isFollowing = await followPromise(userId);
+            followers--;
         } else {
             throw new Error("User is not followed");
         }
@@ -310,15 +313,16 @@
             </span>
             {#if !invalidUser}
                 {#await isFollowing}
-                    <button class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+                    <button class="inline-block align-middle transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
                 {:then data}
                     {#if data}
-                        <button on:click={() => {unfollowUser(userId)}} class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Unfollow</button>
+                        <button on:click={() => {unfollowUser(userId)}} class="inline-block align-middle transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Unfollow</button>
                     {:else}
-                        <button on:click={() => {followUser(userId)}} class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+                        <button on:click={() => {followUser(userId)}} class="inline-block align-middle transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
                     {/if}
                 {/await}
             {/if}
+            <span class="mt-1 inline-block align-middle text-xs">{followers} {followers === 1 ? "follower" : "followers"}</span>
             <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIO</h2>
                 <button class="float-right inline" on:click={() => {

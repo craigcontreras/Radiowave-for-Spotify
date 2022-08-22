@@ -230,9 +230,6 @@
 <SEO title="Home - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
 <div class="mx-6">
     {#if !invalidUser}
-        <div class="following-recently-played">
-            <h2 class="text-4xl font-black mb-4">Following</h2>
-        </div>
         <div class="divider"></div>
         <div class="new-releases">
             <h2 class="text-4xl font-black mb-4">New releases</h2>
@@ -277,16 +274,18 @@
         </div>
         <div class="divider"></div>
     {/if}
-    <div class="popular-now">
-        <h2 class="text-4xl font-black mb-4">Trending now</h2>
-        <div class="content grid grid-flow-row-dense grid-cols-8 gap-4">
-            {#each tracks as track}
-                <BigTrackThumbnail title={track.name}
-                    artist={track.artist} src={track.image} alt="" 
-                    href={track.href} date={track.release_date} classes=""/>
-            {/each}
+    {#if tracks.length !== 0}
+        <div class="popular-now">
+            <h2 class="text-4xl font-black mb-4">Trending now</h2>
+            <div class="content grid grid-flow-row-dense grid-cols-8 gap-4">
+                {#each tracks as track}
+                    <BigTrackThumbnail title={track.name}
+                        artist={track.artist} src={track.image} alt="" 
+                        href={track.href} date={track.release_date} classes=""/>
+                {/each}
+            </div>
         </div>
-    </div>
+    {/if}
     <div class="divider"></div>
     <div class="under-the-radar">
         <h2 class="text-4xl font-black mb-4">Under the radar</h2>
@@ -302,6 +301,9 @@
     <div class="popular-reviews">
         <h2 class="text-4xl font-black mb-4">Trending reviews</h2>
         <div class="content grid grid-flow-row-dense grid-cols-2 gap-4">
+            {#if trendingReviews.length === 0}
+                <p>No trending reviews as of today.</p>
+            {/if}
             {#each trendingReviews as review}
                 <OffPageReview likeCount={review.likeCount} reviewMessage={review.message} trackAuthor={review.trackAuthor} trackName={review.trackName} trackImage={review.trackHref} trackId={review.trackId} reviewAuthor={review.author} reviewType={review.type}/>
             {/each}
