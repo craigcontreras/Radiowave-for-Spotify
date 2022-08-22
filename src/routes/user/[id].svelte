@@ -1,6 +1,6 @@
 <script context="module">
 	import SEO from './../../components/utilities/SEO.svelte';
-    import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore";
+    import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
     let userLoaded = false;
@@ -10,6 +10,7 @@
     let invalidUser = true;
     let usersLists = [];
     let usersReviews = [];
+    let userId = "";
 
     export async function load({params}) {
         usersLists = [];
@@ -23,6 +24,7 @@
                 invalidUser,
                 usersLists,
                 usersReviews,
+                userId
             }
         }
     }
@@ -76,9 +78,14 @@
         } else {
             throw new Error("User does not exist");
         }
+
+        if (user !== null) {
+            invalidUser = false;
+            userId = user.uid;
+        }
+
         if (user !== null && userDataDocument.id === user.uid) {
             ifIsUser = true;
-            invalidUser = false;
         }
 
         return "Completed";
@@ -103,7 +110,7 @@
     import { get } from 'svelte/store';
     import List from '../../components/static/List.svelte';
     import TrackThumbnail from '../../components/thumbnails/TrackThumbnail.svelte';
-import Review from '../../components/static/Review.svelte';
+    import Review from '../../components/static/Review.svelte';
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
@@ -146,6 +153,9 @@ import Review from '../../components/static/Review.svelte';
 
     export let usersLists = [];
     export let usersReviews = [];
+    export let userId = "";
+
+    let isFollowing = null;
 
     let options = {
         chart: {
@@ -160,6 +170,7 @@ import Review from '../../components/static/Review.svelte';
 
     onMount(async () => {
         loginToFirebase();
+        isFollowing = await followPromise(userId);
         const { chart } = await import("svelte-apexcharts");
         chartMethod = chart;
         chartLoaded = true;
@@ -230,6 +241,53 @@ import Review from '../../components/static/Review.svelte';
         changeMode = !changeMode;
         biographyCollapsed = true;
     }
+
+    async function followUser(userId) {
+        if (!isFollowing) {
+            await setDoc(doc(db, `users/${$page.params.id}`), {
+                followers: arrayUnion(userId),
+            }, { merge: true });
+
+            await setDoc(doc(db, `users/${userId}`), {
+                following: arrayUnion(userId),
+            }, { merge: true });
+            isFollowing = await followPromise(userId);
+        } else {
+            throw new Error("User is already followed");
+        }
+    }
+
+    async function unfollowUser(userId) {
+        if (isFollowing) {
+            await setDoc(doc(db, `users/${$page.params.id}`), {
+                followers: arrayRemove(userId),
+            }, { merge: true });
+            await setDoc(doc(db, `users/${userId}`), {
+                following: arrayRemove(userId),
+            }, { merge: true });
+            isFollowing = await followPromise(userId);
+        } else {
+            throw new Error("User is not followed");
+        }
+    }
+
+    async function followPromise(userId) {
+        const pageUser = await getDoc(doc(db, `users/${$page.params.id}`));
+        const pageData = pageUser.data();
+        if (pageData?.followers?.includes(userId)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    async function getFollowing() {
+
+    }
+
+    async function getFollowers() {
+
+    }
 </script>
 
 <SEO height=460 width=460 title="{userData?.displayName} - Users - Radiowave for Spotify" description="View {userData?.displayName}'s Spotify stats like recently played, top artists & tracks, and their latest reviews on Radiowave for Spotify." image="{userData?.photoURL}"/>
@@ -251,7 +309,15 @@ import Review from '../../components/static/Review.svelte';
                 <h2 class="text-2xl break-words text-center font-black mt-4">{userData?.displayName}</h2>
             </span>
             {#if !invalidUser}
-            <button class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+                {#await isFollowing}
+                    <button class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+                {:then data}
+                    {#if data}
+                        <button on:click={() => {unfollowUser(userId)}} class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Unfollow</button>
+                    {:else}
+                        <button on:click={() => {followUser(userId)}} class="transition-all hover:text-white hover:bg-stone-900 hover:-translate-y-1 border-2 border-stone-900 py-1 px-2 mt-2 rounded-lg drop-shadow-xl">Follow</button>
+                    {/if}
+                {/await}
             {/if}
             <div class="history w-3/4 mt-4 text-xs transition-all hover:-translate-y-1 p-4 drop-shadow-xl rounded-lg bg-black">
                 <h2 class="italic inline text-gray-400">BIO</h2>
