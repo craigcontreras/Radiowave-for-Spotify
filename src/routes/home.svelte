@@ -11,12 +11,14 @@
     let latestReleases = [];
     let underTheRadar = [];
     let userRecommendations = [];
+    let trendingLists = [];
 
     export async function load({params}) {
         tracks = [];
         trendingReviews = [];
         latestReleases = [];
         underTheRadar = [];
+        trendingLists = [];
         await loginToFirebase(params);
         return {
             props: {
@@ -25,7 +27,8 @@
                 trendingReviews,
                 latestReleases,
                 underTheRadar,
-                userRecommendations
+                userRecommendations,
+                trendingLists,
             }
         }
     }
@@ -197,7 +200,7 @@
         const reviewStatsQuery = query(reviewStatsRef, orderBy(`stats.${date}.likes`, "desc"), limit(4));
         const reviews = await getDocs(reviewStatsQuery);
         let tempCollection = [];
-        
+
         reviews.forEach((doc) => {
             tempCollection.push(doc.data());
             tempCollection = tempCollection;
@@ -209,6 +212,36 @@
             trendingReviews = trendingReviews;
         }
 
+        const listStatsRef = collection(db, `list-statistics`);
+        const listStatsQuery = query(listStatsRef, orderBy(`stats.${date}.likes`, "desc"), limit(4));
+        const lists = await getDocs(listStatsQuery);
+        let tempCollection2 = [];
+
+        lists.forEach((doc) => {
+            tempCollection2.push(doc.data());
+            tempCollection2 = tempCollection2;
+        })
+
+        for (const data of tempCollection2) {
+            const list = await getDoc(doc(db, `users/${data.author}/lists/${data.id}`));
+
+            let fiveImages = [];
+            if (list.data().tracks.length < 5) {
+                for (const track of list.data().tracks) {
+                    fiveImages.push(track.image);
+                    fiveImages = fiveImages;
+                }
+            } else {
+                for (const track of list.data().tracks.slice(0, 5)) {
+                    fiveImages.push(track.image);
+                    fiveImages = fiveImages;
+                }
+            }
+
+            trendingLists.push({...list.data(), fiveImages});
+            trendingLists = trendingLists;
+        }
+
         await getUnderTheRadarTracks();
 
         return "Completed";
@@ -216,9 +249,11 @@
 </script>
 
 <script>
-    import OffPageReview from "../components/static/OffPageReview.svelte";
+    import List from "../components/static/List.svelte";
+import OffPageReview from "../components/static/OffPageReview.svelte";
     import BigTrackThumbnail from "../components/thumbnails/BigTrackThumbnail.svelte";
 
+    export let trendingLists = [];
     export let latestReleases = [];
     export let trendingReviews = [];
     export let tracks = [];
@@ -312,6 +347,22 @@
     <div class="divider"></div>
     <div class="popular-lists">
         <h2 class="text-4xl font-black mb-4">Trending lists</h2>
+        <div class="content grid grid-flow-row-dense grid-cols-2 gap-4">
+            {#if trendingLists.length === 0}
+                <p>No trending lists as of today.</p>
+            {/if}
+            {#each trendingLists as list, id}
+                {#if id === 1 || id === 3}
+                    <div class="p-2 flex justify-end text-right">
+                        <List showCreator={true} userPfp={list.userPicture} userId={list.userId} userName={list.displayName} images={list.fiveImages} name={list.name} href="user/{list.userId}/lists/{list.id}"/>
+                    </div>
+                {:else}
+                    <div class="p-2">
+                        <List showCreator={true} userPfp={list.userPicture} userId={list.userId} userName={list.displayName} images={list.fiveImages} name={list.name} href="user/{list.userId}/lists/{list.id}"/>
+                    </div>
+                {/if}
+            {/each}
+        </div>
     </div>
 </div>
 

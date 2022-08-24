@@ -2,6 +2,11 @@
     export let images = [];
     export let name = "";
     export let href = "";
+
+    export let showCreator = false;
+    export let userPfp = "";
+    export let userName = "";
+    export let userId = "";
 </script>
 
 <div>
@@ -18,6 +23,15 @@
         <a {href} class="hover:-translate-y-1 transition-all font-bold text-lg">{name.substring(0, 13)}...</a>
     {:else}
         <a {href} class="hover:-translate-y-1 transition-all font-bold text-lg">{name}</a>
+    {/if}
+
+    {#if showCreator}
+        <div class="hover:-translate-y-1 transition-all mt-1 creator">
+            <a href="/user/{userId}">
+                <img class="rounded-full h-[20px] w-[20px] inline-block align-middle" height=20 width=20 src={userPfp} alt="">
+                <p class="text-xs ml-1 inline-block align-middle">{userName}</p>    
+            </a>
+        </div>
     {/if}
 </div>
 

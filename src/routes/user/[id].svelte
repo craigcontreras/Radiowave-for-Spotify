@@ -1,6 +1,6 @@
 <script context="module">
 	import SEO from './../../components/utilities/SEO.svelte';
-    import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore";
+    import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from "firebase/firestore";
     import { auth, db } from "../../firebase.js";
 
     let userLoaded = false;

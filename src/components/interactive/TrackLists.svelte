@@ -21,6 +21,8 @@
     let invalidUser = true;
     let createListName = "";
     let userId = "";
+    let userPicture = "";
+    let displayName = "";
     let usersLists = {};
     let checked = {};
 
@@ -46,6 +48,8 @@
         if (user !== null) {
             invalidUser = false;
             userId = user.uid;
+            userPicture = user.photoURL;
+            displayName = user.displayName;
             getUsersLists();
         }
     }
@@ -109,7 +113,9 @@
 
         const data = {
             name,
+            displayName,
             userId,
+            userPicture,
             id: generatedUUID,
             tracks: [],
         }
@@ -128,6 +134,7 @@
             delete usersLists[id];
             usersLists = usersLists;
             await deleteDoc(doc(db, `users/${userId}/lists/${id}`));
+            await deleteDoc(doc(db, `list-statistics/${id}`))
         }
     }
 </script>

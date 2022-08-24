@@ -168,6 +168,24 @@
                 }, {
                     merge: true
                 });
+
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+                const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+                const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+
+                let statisticsData = {
+                    id: trackId,
+                    name,
+                    author: artist,
+                    href,
+                    stats: {},
+                };
+
+                statisticsData.stats[date] = {
+                    likes: increment(1),
+                }
+
+                await setDoc(doc(db, `list-statistics/${trackId}`), statisticsData, { merge: true })
             }
         } catch (e) {
             console.log("Unable to like this");
@@ -249,6 +267,24 @@
                 }, {
                     merge: true
                 });
+
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+                const dateObj = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+                const date = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+
+                let statisticsData = {
+                    id: trackId,
+                    name,
+                    author: artist,
+                    href,
+                    stats: {},
+                };
+
+                statisticsData.stats[date] = {
+                    likes: increment(-1),
+                }
+
+                await setDoc(doc(db, `list-statistics/${trackId}`), statisticsData, { merge: true })
             }
         } catch (e) {
             console.log("Unable to unlike this");

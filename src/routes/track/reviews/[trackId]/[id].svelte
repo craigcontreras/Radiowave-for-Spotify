@@ -109,7 +109,7 @@
             {:catch err}
                 <UserThumbnail imgSrc="" username={like}/>
             {/await}
-        {/each}  
+        {/each}
     </div>
     <div class="divider"></div>
 </div>
