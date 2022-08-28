@@ -136,6 +136,7 @@
     import { get } from 'svelte/store';
     import TrackLists from '../../components/interactive/TrackLists.svelte';
     import Likes from '../../components/interactive/Likes.svelte';
+    import findIndex from 'lodash/findIndex.js';
 
     export let albumData;
     export let userId = "";
@@ -393,17 +394,16 @@
         });
 
         const counterRef = collection(db, `albums/${$page.params.id}/counter`);
-        const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
+        const counterQuery = query(counterRef, orderBy("date", "desc"), limit(7));
         const counterDocs = await getDocs(counterQuery);
 
         counterDocs.forEach((doc, index) => {
-            remove(views, (obj) => {
-                return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
-            })
-            views.push({
-                x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
-                y: doc.data().pageViews
-            });
+            if (doc.data().date.toDate().getDate() >= range[0].getDate()) {
+                views[findIndex(views, (data) => data.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`)] = {
+                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
+                    y: doc.data().pageViews
+                };
+            }
             // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
         });
 

@@ -156,6 +156,7 @@
     import Seo from '../../components/utilities/SEO.svelte';
     import TrackLists from '../../components/interactive/TrackLists.svelte';
 import Likes from '../../components/interactive/Likes.svelte';
+    import findIndex from 'lodash/findIndex.js';
 
     let hideTrackList = true;
     let inChangeMode = false;
@@ -472,7 +473,7 @@ import Likes from '../../components/interactive/Likes.svelte';
         });
 
         const counterRef = collection(db, `tracks/${$page.params.id}/counter`);
-        const counterQuery = query(counterRef, orderBy("date", "asc"), limit(7));
+        const counterQuery = query(counterRef, orderBy("date", "desc"), limit(7));
         const counterDocs = await getDocs(counterQuery);
 
         const range = getDaysArray(new Date(dateObj.getTime()).setDate(dateObj.getDate() - 6), dateObj); 
@@ -486,14 +487,12 @@ import Likes from '../../components/interactive/Likes.svelte';
         });
 
         counterDocs.forEach((doc, index) => {
-            remove(views, (obj) => {
-                return obj.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`;
-            })
-            views.push({
-                x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
-                y: doc.data().pageViews
-            });
-            // dates.push(`${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`);
+            if (doc.data().date.toDate().getDate() >= range[0].getDate()) {
+                views[findIndex(views, (data) => data.x === `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`)] = {
+                    x: `${doc.data().date.toDate().getMonth() + 1}/${doc.data().date.toDate().getDate()}/${doc.data().date.toDate().getFullYear()}`,
+                    y: doc.data().pageViews
+                };
+            }
         });
 
         options = {
