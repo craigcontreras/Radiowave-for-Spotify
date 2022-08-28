@@ -25,7 +25,7 @@
 
         //when done, go to the account page
         if (browser) {
-            goto("/account");
+            goto("/home");
         }
     }).catch((err) => {
         throw new Error(err);
