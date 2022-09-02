@@ -132,6 +132,7 @@
                 });
                 userRecommendations = recommendations.data.tracks;
             } catch (err) {
+                
             }
         }
 
@@ -250,7 +251,7 @@
 
 <script>
     import List from "../components/static/List.svelte";
-import OffPageReview from "../components/static/OffPageReview.svelte";
+    import OffPageReview from "../components/static/OffPageReview.svelte";
     import BigTrackThumbnail from "../components/thumbnails/BigTrackThumbnail.svelte";
 
     export let trendingLists = [];

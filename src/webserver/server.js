@@ -392,13 +392,13 @@ async function pushActivityToFirebase(arr, uuid) {
 
 async function startCronJobs(uuid) {
     const userData = await db.collection("users").doc(uuid).get();
-    let access = userData.data().access;
-    let refresh = userData.data().refresh;
+    let access1 = userData.data().access;
+    let refresh1 = userData.data().refresh;
 
     // for initial load
     axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
             headers: {
-                Authorization: `Bearer ${access}`
+                Authorization: `Bearer ${access1}`
             }        
         }).then(data => {
             const items = data.data.items;
@@ -419,7 +419,7 @@ async function startCronJobs(uuid) {
             console.log("first try: ", err);
             const params = new URLSearchParams();
             params.append("grant_type", "refresh_token");
-            params.append("refresh_token", refresh);
+            params.append("refresh_token", refresh1);
             params.append("client_id", id);
             axios.post("https://accounts.spotify.com/api/token", params, {
                 headers: {
@@ -467,12 +467,12 @@ async function startCronJobs(uuid) {
     //this one gets the user's recently played and uses pusher to serve the new tracks in real time
     const fiveMin = cron.schedule('*/40 * * * *', async () => {
         const userData = await db.collection("users").doc(uuid).get();
-        let access = userData.data().access;
-        let refresh = userData.data().refresh;
+        let access2 = userData.data().access;
+        let refresh2 = userData.data().refresh;
 
         axios.get("https://api.spotify.com/v1/me/player/recently-played?limit=20", {
             headers: {
-                Authorization: `Bearer ${access}`
+                Authorization: `Bearer ${access2}`
             }        
         }).then(data => {
             const items = data.data.items;
@@ -494,7 +494,7 @@ async function startCronJobs(uuid) {
             console.log("first try ", err);
             const params = new URLSearchParams();
             params.append("grant_type", "refresh_token");
-            params.append("refresh_token", refresh);
+            params.append("refresh_token", refresh2);
             params.append("client_id", id);
             axios.post("https://accounts.spotify.com/api/token", params, {
                 headers: {
