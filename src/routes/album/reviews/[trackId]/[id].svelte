@@ -76,7 +76,7 @@
         </ul>
     </div>
     <a href="/album/{$page.params.trackId}">
-        <img class="transition-all hover:-translate-y-1 inline-block align-middle rounded-lg outline-4 drop-shadow-xl" src={trackDetails?.images[2]?.url} alt="Album cover">
+        <img class="h-[56px] w-[56px] transition-all hover:-translate-y-1 inline-block align-middle rounded-lg outline-4 drop-shadow-xl" src={trackDetails?.images[2]?.url} alt="Album cover">
     </a>
     <div id="track-details" class="transition-all hover:-translate-y-1 ml-1 mr-2 leading-4 align-middle inline-block">
         <a href="/album/{$page.params.trackId}">
@@ -84,7 +84,7 @@
             <h2 class="text-md">by {trackDetails?.artists[0]?.name}</h2>
         </a>
     </div>
-    <Review showLikeText={false} showCommentText={false} trackId={$page.params.trackId} reviewRating={reviewDetails?.rating} reviewAuthor={reviewDetails?.author} reviewMessage={reviewDetails?.message} reviewDate={reviewDetails?.date}/>
+    <Review reviewPage={true} showLikeText={false} showCommentText={false} trackId={$page.params.trackId} reviewRating={reviewDetails?.rating} reviewAuthor={reviewDetails?.author} reviewMessage={reviewDetails?.message} reviewDate={reviewDetails?.date}/>
     <h2 class="text-lg font-bold">Likes ({reviewDetails?.likeCount})</h2>
     <div id="likes" class="grid mt-2 grid-flow-row-dense grid-cols-12 gap-1">
         {#each reviewLikes as like}

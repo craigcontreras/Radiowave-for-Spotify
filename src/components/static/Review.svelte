@@ -23,6 +23,7 @@
     export let trackName = "";
     export let trackImage = "";
     export let trackArtist = "";
+    export let reviewPage = false;
 </script>
 
 <div class="review">
@@ -51,7 +52,12 @@
         <div class="py-1 origin-left scale-75 w-16">
             <Rating avgRating={reviewRating}/>
         </div>
-        <p class="text-lg break-all">{reviewMessage}</p>
+        {#if reviewMessage.length >= 500 && !reviewPage}
+            <p class="inline text-lg">{reviewMessage.substring(0, 501)}...</p>
+            <a href={commentHref} class="inline ml-1 italic opacity-50">Read more</a>
+        {:else}
+            <p class="text-lg">{reviewMessage}</p>
+        {/if}
         <p class="text-sm break-all">Written on {new Date(reviewDate?.seconds * 1000)}</p>
         <div id="likes-comments-stats">
             {#if showLikeText}

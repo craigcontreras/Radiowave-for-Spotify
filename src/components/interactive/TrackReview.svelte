@@ -1,6 +1,6 @@
 <script>
+	import { slide } from 'svelte/transition';
     import Review from '../static/Review.svelte';
-	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { collection, serverTimestamp, doc, orderBy, query, writeBatch, getDocs, limit, startAfter } from "firebase/firestore";
     import { onMount } from "svelte";
@@ -27,6 +27,7 @@
     let currUserRating = 0;
     let userLoaded = false;
     let invalidUser = true;
+    let errorMsg = "";
 
     const allTrackReviews = [];
     const {userAgent} = get(session);
@@ -130,42 +131,46 @@
     async function submitCurrUserReview(message, rating) {
         const user = await getCurrentUser();
         if (user !== null) {
-            const batch = writeBatch(db);
-            batch.set(doc(db, fromDoc), {
-                author: userId,
-                date: serverTimestamp(),
-                rating,
-                message,
-                likes: [],
-                likeCount: 0,
-                trackId,
-                trackName,
-                trackAuthor,
-                trackHref,
-                type: reviewType
-            });
-            batch.set(doc(db, `users/${userId}/reviews/${trackId}`), {
-                author: userId,
-                date: serverTimestamp(),
-                rating,
-                message,
-                likes: [],
-                likeCount: 0,
-                trackId,
-                trackName,
-                trackAuthor,
-                trackHref,
-                type: reviewType
-            });
-            batch.set(doc(db, `review-statistics/${trackId}-${userId}`), {
-                author: userId,
-                stats: {},
-                track: trackId,
-                type: reviewType
-            })
-            await batch.commit();
-            if (browser) {
-                location.reload();
+            if (currUserRating >= 0 && currUserRating <= 100) {
+                const batch = writeBatch(db);
+                batch.set(doc(db, fromDoc), {
+                    author: userId,
+                    date: serverTimestamp(),
+                    rating,
+                    message,
+                    likes: [],
+                    likeCount: 0,
+                    trackId,
+                    trackName,
+                    trackAuthor,
+                    trackHref,
+                    type: reviewType
+                });
+                batch.set(doc(db, `users/${userId}/reviews/${trackId}`), {
+                    author: userId,
+                    date: serverTimestamp(),
+                    rating,
+                    message,
+                    likes: [],
+                    likeCount: 0,
+                    trackId,
+                    trackName,
+                    trackAuthor,
+                    trackHref,
+                    type: reviewType
+                });
+                batch.set(doc(db, `review-statistics/${trackId}-${userId}`), {
+                    author: userId,
+                    stats: {},
+                    track: trackId,
+                    type: reviewType
+                })
+                await batch.commit();
+                if (browser) {
+                    location.reload();
+                }
+            } else {
+                errorMsg = "Review rating is invalid";
             }
         } else {
             throw new Error("User is not logged in");
@@ -194,6 +199,10 @@
             <button class="hover:-translate-y-1 transition-all font-bold btn btn-error btn-sm" on:click|preventDefault={evt => {
                 deleteCurrUserReview();
             }}>Delete</button>
+        {/if}
+
+        {#if errorMsg}
+            <p class="mt-2 text-sm text-red-500" transition:slide>{errorMsg}</p>
         {/if}
     </form>
 </div>
