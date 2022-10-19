@@ -54,7 +54,7 @@
         </div>
         {#if reviewMessage.length >= 500 && !reviewPage}
             <p class="inline text-lg">{reviewMessage.substring(0, 501)}...</p>
-            <a href={commentHref} class="inline ml-1 italic opacity-50">Read more</a>
+            <a href="/{commentHref}" class="inline ml-1 italic opacity-50">Read more</a>
         {:else}
             <p class="text-lg">{reviewMessage}</p>
         {/if}

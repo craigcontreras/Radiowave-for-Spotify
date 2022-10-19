@@ -371,13 +371,25 @@ async function runTransactionForTrack(uuid, trackId, playedAt, amntOfPlays) {
 
 async function pushActivityToFirebase(arr, uuid) {
     let trackPlays = {};
-    arr.forEach((track) => {
+    let currentTrackId = "";
+
+    arr.forEach(async (track) => {
+        currentTrackId = track.id;
+        let lastPlayedFirebase = null;
+        let trackPlayedAt = new Date(track.played_at);
+        if (track.id !== currentTrackId) {
+            const data = await db.collection("users").doc(uuid).collection("tracker").doc(trackId).get();
+            lastPlayedFirebase = data.data().playedAt.toDate();
+        }
         if (trackPlays[track.id] && trackPlays[track.id].hasOwnProperty("plays")) {
-            trackPlays[track.id].plays = trackPlays[track.id].plays + 1;
+            if (trackPlayedAt > lastPlayedFirebase) {
+                trackPlays[track.id].plays = trackPlays[track.id].plays + 1;
+                trackPlays[track.id].lastPlayed = trackPlayedAt;
+            }
         } else {
             trackPlays[track.id] = {
                 id: track.id,
-                lastPlayed: new Date(track.played_at),
+                lastPlayed: trackPlayedAt,
                 plays: 1,
             };
         }
@@ -423,7 +435,6 @@ async function startCronJobs(uuid) {
             params.append("client_id", id);
             axios.post("https://accounts.spotify.com/api/token", params, {
                 headers: {
-                    "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             }).then(async (spotifyData) => {
@@ -498,7 +509,6 @@ async function startCronJobs(uuid) {
             params.append("client_id", id);
             axios.post("https://accounts.spotify.com/api/token", params, {
                 headers: {
-                    "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             }).then(async (spotifyData) => {
