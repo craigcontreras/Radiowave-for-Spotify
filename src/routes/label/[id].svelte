@@ -67,7 +67,7 @@
     import { onMount } from "svelte";
     import DOMPurify from "isomorphic-dompurify";
     import { get } from 'svelte/store';
-import Error from "../__error.svelte";
+    import Error from "../__error.svelte";
 
     let editBiography = "";
     $: sanitizedBiography = DOMPurify.sanitize(editBiography, {ALLOWED_TAGS: [], ALLOWED_ATTR: []});
