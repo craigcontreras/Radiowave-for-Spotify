@@ -31,7 +31,7 @@
 </script>
 
 <Seo title="Home - Radiowave for Spotify" description="View your Spotify account stats and review music from Spotify's extensive back catalog on Radiowave for Spotify." image=""/>
-<a href="/login">Login</a>
+<a href="/auth/login" rel="external">Login with Spotify</a>
 
 <style>
 </style>

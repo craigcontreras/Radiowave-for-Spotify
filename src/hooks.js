@@ -1,4 +1,3 @@
-import cookie from "cookie";
 import { minify } from 'html-minifier';
 
 const minification_options = {
@@ -22,19 +21,7 @@ const minification_options = {
 };
 
 export async function handle({event, resolve}) {
-    const cookies = cookie.parse(event.request.headers.get("Cookie") || "");
-    event.locals.access_firebase = cookies.access_firebase || null;
-    
     const response = await resolve(event);
-    response.headers.set(
-        "Set-Cookie",
-        cookie.serialize("access_firebase", event.locals.access_firebase, {
-            path: "/",
-            secure: true,
-            httpOnly: true,
-            sameSite: true
-        }),
-    );
     
 	if (response.headers['content-type'] === 'text/html') {
 		response.body = minify(response.body, minification_options); //Minifies the response.body
@@ -44,9 +31,7 @@ export async function handle({event, resolve}) {
 }
 
 export async function getSession(event) {
-    console.log(event.request.headers.get("user-agent"));
     return {
-        userAgent: event.request.headers.get("user-agent"),
-        access_firebase: event.locals.access_firebase
+        userAgent: event.request.headers.get("user-agent")
     }
 }

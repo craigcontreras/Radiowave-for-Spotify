@@ -145,6 +145,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
     import { onMount } from "svelte";
+    import { coverColor } from "$lib/cover-color.js";
     import { v4 as uuidv4 } from "uuid";
     import Icon from "svelte-awesome";
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
@@ -238,7 +239,6 @@ import Likes from '../../components/interactive/Likes.svelte';
 
     //svelte binding elements for dom
     let detailElement;
-    let thumbnailElement;
 
     //intersection observer shit
     let hide = false;
@@ -272,20 +272,6 @@ import Likes from '../../components/interactive/Likes.svelte';
     onMount(async () => {
         loginToFirebase();
         const { chart } = await import("svelte-apexcharts");
-        const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
-        if (thumbnailElement.complete && thumbnailElement.src) {
-            Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
-                console.log(err);
-                primaryColor = palette.DarkVibrant.getHex();
-            });
-        } else {
-            thumbnailElement.addEventListener("load", () => {
-                Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
-                    primaryColor = palette.DarkVibrant.getHex();
-                });
-            });
-        }
-
         chartMethod = chart;
         chartLoaded = true;
 
@@ -953,7 +939,7 @@ import Likes from '../../components/interactive/Likes.svelte';
         <div class:bg-gradient-to-b={!hide} class="relative h-full from-base-100 via-base-100 to-theme-color blur-2xl"></div>
     </div>
     <div>
-        <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
+        <img use:coverColor={color => primaryColor = color} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={trackData?.album?.images[1]?.url} alt="Album cover"/>
         {#if !invalidUser && !hide}
             <div transition:slide class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex justify-around -mt-4">
                 <div class="add-to-list">

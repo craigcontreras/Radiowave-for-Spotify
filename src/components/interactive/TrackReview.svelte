@@ -29,7 +29,7 @@
     let invalidUser = true;
     let errorMsg = "";
 
-    const allTrackReviews = [];
+    let allTrackReviews = [];
     const {userAgent} = get(session);
 
     onMount(() => {

@@ -122,6 +122,7 @@
     import { browser } from "$app/env";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
+    import { coverColor } from "$lib/cover-color.js";
     import Rating from '../../components/static/Rating.svelte';
     import Icon from 'svelte-awesome';
     import { faPlayCircle } from '@fortawesome/free-solid-svg-icons/faPlayCircle';
@@ -189,7 +190,6 @@
     let dates = [];
     let views = [];
 
-    let thumbnailElement;
     let primaryColor = "";
     
     export let invalidUser;
@@ -235,19 +235,6 @@
         const { chart } = await import("svelte-apexcharts");
         chartMethod = chart;
         chartLoaded = true;
-
-        const Vibrant = await import("../../../node_modules/node-vibrant/dist/vibrant.js");
-        if (thumbnailElement.complete) {
-            Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
-                primaryColor = palette.DarkVibrant.getHex();
-            });
-        } else {
-            thumbnailElement.addEventListener("load", () => {
-                Vibrant.from(thumbnailElement.src).getPalette((err, palette) => {
-                    primaryColor = palette.DarkVibrant.getHex();
-                });
-            });
-        }
 
         if (browser) {
             const observer = new IntersectionObserver(entries => {
@@ -750,7 +737,7 @@
         <div class:bg-gradient-to-b={!hide} class="relative h-full from-base-100 via-base-100 to-theme-color blur-2xl"></div>
     </div>
     <div>
-        <img bind:this={thumbnailElement} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
+        <img use:coverColor={color => primaryColor = color} class:opacity-20={hide} class:scale-50={hide} class="relative max-h-[300px] min-h-[300px] max-w-[300px] min-w-[300px] origin-top-left transition-all hover:opacity-100 rounded-lg outline-4 drop-shadow-xl m-6" src={albumData?.images[1]?.url} alt="Album cover"/>
         {#if !invalidUser && !albumData?.isSingle && !hide}
             <div transition:slide class:opacity-0={hide} class:pointer-events-none={hide} class="transition-opacity flex justify-around -mt-4">
                 <div class="add-to-list">

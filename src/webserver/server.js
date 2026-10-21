@@ -1,24 +1,20 @@
-import encryption from "./encryption.js";
+import "dotenv/config";
+import { pathToFileURL } from "node:url";
+import { createAuthRouter } from "./auth.js";
 import cookieParser from "cookie-parser";
 import express from "express";
-import { initializeApp, applicationDefault } from "firebase-admin/app";
+import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as Pusher from "pusher";
-import crypto from "crypto";
-import base64url from "base64url";
-import querystring from "querystring";
 import axios from "axios";
 import * as cron from "node-cron";
-import { handler } from "./build/handler.js";
 
 //initialize express server
-const app = express();
+export const app = express();
 
-//spotify credentials
-const id = "4d5e942d117f4de793c86a1c53c3d393";
-const secret = "1e694b8c1aae43efa11b0df5330dfd72";
-const redirect = "https://radiowave.app/callback";
+// Spotify credentials are loaded from the local environment.
+const id = process.env.SPOTIFY_CLIENT_ID;
 
 //middleware
 app.use(cookieParser()); //parses all cookies incoming from requests
@@ -26,7 +22,7 @@ app.use(express.json()); //parses all headers into json that are intended as jso
 // app.use(prerender.set('prerenderToken', 'rCgpsgWBD1pqJ1kMfX0M'));
 
 //initialize firebase admin sdk
-initializeApp({
+if (!getApps().length) initializeApp({
     credential: applicationDefault(), //uses the environment variable
     databaseURL: ""
 });
@@ -48,279 +44,41 @@ const pusher = new Pusher.default({
  * everything else should be handled by sveltekit
  */
 
-//decrypts encrypted firebase custom access token and sends it back to the client
-app.post("/api/v1/firebase", (req, res) => {
-    const decryptedCookie = encryption.decrypt(req.body.access_firebase);
-    res.send({
-        access_firebase: decryptedCookie
-    });
-});
+app.use(createAuthRouter({
+    clientId: process.env.SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+    redirectUri: process.env.SPOTIFY_REDIRECT_URI,
+    createAccount: createFirebaseAccount,
+    onLogin: startCronJobs,
+}));
 
-app.get("/login", (req, res) => {
-    const state = encryption.generateRandString(16); //used for auth code flow in spotify to verify that the request is coming from this server
-    //whole bunch of bullshit for spotify authentication and verifying it so it minimizes attacks from diff servers
-    const verifier = encryption.generateRandString(64);
-    const digest = crypto.createHash("sha256").update(verifier).digest("base64");
-    const challenge = base64url.fromBase64(digest);
-
-    const verifierEncrypted = encryption.encrypt(verifier);
-    res.cookie("verifier", verifierEncrypted, {
-        httpOnly: true,
-        secure: true,
-        maxAge: 30000,
-    });
-
-    res.cookie("state", state, {
-        httpOnly: true,
-        secure: true,
-        maxAge: 30000,
-    });
-    
-    //redirects user to spotify to sign in
-    res.redirect("https://accounts.spotify.com/authorize?" +
-        querystring.stringify({
-            response_type: "code",
-            client_id: id,
-            redirect_uri: redirect,
-            state: state,
-            code_challenge_method: "S256",
-            code_challenge: challenge,
-            scope: "user-read-private user-top-read user-read-currently-playing user-read-email user-read-playback-state user-read-recently-played",
-        })); //creates a query string because i don't know how else to do that
-});
-
-app.get("/callback", (req, res) => {
-    //verifying that the state from spotify's response is the state the server sent in
-    if (req.query.state === req.cookies.state) {
-        //i don't know how else to format a urlencoded header
-        const params = new URLSearchParams();
-        let decryptedVerifier = encryption.decrypt(req.cookies.verifier);
-
-        params.append("grant_type", "authorization_code");
-        params.append("code", req.query.code.toString());
-        params.append("redirect_uri", "https://radiowave.app/callback");
-        params.append("client_id", id);
-        params.append("code_verifier", decryptedVerifier);
-
-        //sending a request to spotify for an access and refresh token
-        axios.post("https://accounts.spotify.com/api/token", params, {
-            headers: {
-                "Authorization": "Basic " + (new Buffer(id + ":" + secret).toString("base64")),
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
-        }).then(response => {
-            const refresh = response.data.refresh_token;
-            const access = response.data.access_token;
-
-            //creating or updating the users firebase account
-            const spotifyMe = axios.get(`https://api.spotify.com/v1/me`, {
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopTracksPastFourWeeks = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
-                params : {
-                    time_range: "short_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopArtistsPastFourWeeks = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
-                params : {
-                    time_range: "short_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopTracksPastSixMo = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
-                params : {
-                    time_range: "medium_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopArtistsPastSixMo = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
-                params : {
-                    time_range: "medium_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopTracksPastLifetime = axios.get(`https://api.spotify.com/v1/me/top/tracks`, {
-                params : {
-                    time_range: "long_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            const spotifyTopArtistsPasLifetime = axios.get(`https://api.spotify.com/v1/me/top/artists`, {
-                params : {
-                    time_range: "long_term",
-                },
-                headers: {
-                    Authorization: `Bearer ${access}`
-                }
-            });
-            axios.all([spotifyMe, spotifyTopTracksPastFourWeeks, spotifyTopArtistsPastFourWeeks, spotifyTopTracksPastSixMo, spotifyTopArtistsPastSixMo, spotifyTopTracksPastLifetime, spotifyTopArtistsPasLifetime]).then(axios.spread(async (...allResponses) => {
-                const userData = allResponses[0];
-                const topTracksPastFourWeeks = allResponses[1];
-                const topArtistsPastFourWeeks = allResponses[2];
-                const topTracksPastSixMo = allResponses[3];
-                const topArtistsPastSixMo = allResponses[4];
-                const topTracksPastLifetime = allResponses[5];
-                const topArtistsPastLifetime = allResponses[6];
-                
-                let tracksFourWeeks = [];
-                for (let track of topTracksPastFourWeeks.data.items) {
-                    tracksFourWeeks.push(track.id);
-                    tracksFourWeeks = tracksFourWeeks;
-                }
-                
-                let artistsFourWeeks = [];
-                for (let artist of topArtistsPastFourWeeks.data.items) {
-                    artistsFourWeeks.push(artist.id);
-                    artistsFourWeeks = artistsFourWeeks;
-                }
-                
-                let tracksFourWeeksFullData = [];
-                for (let track of topTracksPastFourWeeks.data.items) {
-                    tracksFourWeeksFullData.push({
-                        id: track.id,
-                        name: track.name,
-                        artist: track.artists[0].name,
-                        image: track.album.images[1].url,
-                    });
-                    tracksFourWeeksFullData = tracksFourWeeksFullData;
-                }
-                
-                let artistsFourWeeksFullData = [];
-                for (let artist of topArtistsPastFourWeeks.data.items) {
-                    artistsFourWeeksFullData.push({
-                        id: artist.id,
-                        name: artist.name,
-                        image: artist.images[1].url,
-                        genres: artist.genres,
-                    });
-                    artistsFourWeeksFullData = artistsFourWeeksFullData;
-                }
-                
-                let tracksSixMo = [];
-                for (let track of topTracksPastSixMo.data.items) {
-                    tracksSixMo.push({
-                        id: track.id,
-                        name: track.name,
-                        artist: track.artists[0].name,
-                        image: track.album.images[1].url,
-                    });
-                    tracksSixMo = tracksSixMo;
-                }
-                
-                let artistsSixMo = [];
-                for (let artist of topArtistsPastSixMo.data.items) {
-                    artistsSixMo.push({
-                        id: artist.id,
-                        name: artist.name,
-                        image: artist.images[1].url,
-                        genres: artist.genres,
-                    });
-                    artistsSixMo = artistsSixMo;
-                }
-                
-                let tracksLifetime = [];
-                for (let track of topTracksPastLifetime.data.items) {
-                    tracksLifetime.push({
-                        id: track.id,
-                        name: track.name,
-                        artist: track.artists[0].name,
-                        image: track.album.images[1].url,
-                    });
-                    tracksLifetime = tracksLifetime;
-                }
-                
-                let artistsLifetime = [];
-                for (let artist of topArtistsPastLifetime.data.items) {
-                    artistsLifetime.push({
-                        id: artist.id,
-                        name: artist.name,
-                        image: artist.images[1].url,
-                        genres: artist.genres,
-                    });
-                    artistsLifetime = artistsLifetime;
-                }
-
-                let genresFourWeeks = countGenreOccurrencesForArtists(artistsFourWeeksFullData);
-                let genresSixMonths = countGenreOccurrencesForArtists(artistsSixMo);
-                let genresLifetime = countGenreOccurrencesForArtists(artistsLifetime);
-
-                const customToken = await createFirebaseAccount(userData.data.id, access, 
-                    refresh, userData.data.display_name, userData.data.images[0].url, 
-                    userData.data.email, tracksFourWeeks, artistsFourWeeks, artistsFourWeeksFullData, 
-                    tracksFourWeeksFullData, artistsSixMo, tracksSixMo, artistsLifetime,
-                    tracksLifetime, genresFourWeeks, genresSixMonths, genresLifetime);
-                const customTokenEncrypted = encryption.encrypt(customToken);
-                res.cookie("access_firebase", customTokenEncrypted, {
-                    secure: true,
-                    httpOnly: true,
-                    maxAge: 3600,
-                });
-                startCronJobs(userData.data.id);
-                res.redirect("/signin");
-            }));
-        });
-    }
-})
-
-app.use(handler); //sends users to the frontend
-
-app.listen(3000, () => {
-    console.log("Listening on port 3000");
-});
-
-function countGenreOccurrencesForArtists(artists) {
-    const occurrences = {};
-    for (const artist of artists) {
-        console.log(artist);
-        for (const genre of artist.genres) {
-            if (occurrences[genre.toLowerCase()]) {
-                occurrences[genre.toLowerCase()] = occurrences[genre.toLowerCase()] + 1;
-            } else {
-                occurrences[genre.toLowerCase()] = 1;
-            }
-        }
-    }
-    return occurrences;
+// Vite mounts the same backend without starting a second listener.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    const { handler } = await import('../../build/handler.js');
+    app.use(handler);
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => console.log(`Listening on port ${port}`));
 }
 
 //firebase functions
-async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists, artistsPastFourWeeks, tracksPastFourWeeks, artistsPastSixMonths, tracksPastSixMonths, artistsPastLifetime, tracksPastLifetime, genresFourWeeks, genresSixMonths, genresLifetime) {
-    const createAccount = getAuth().updateUser(uuid, {
-        email,
-        emailVerified: true,
+export async function createFirebaseAccount(uuid, access, refresh, name, photoURL, email, topTracks, topArtists, artistsPastFourWeeks, tracksPastFourWeeks, artistsPastSixMonths, tracksPastSixMonths, artistsPastLifetime, tracksPastLifetime, genresFourWeeks, genresSixMonths, genresLifetime) {
+    const profile = {
         displayName: name,
-        photoURL,
-    }).catch(err => {
+        ...(email ? { email, emailVerified: true } : {}),
+        ...(photoURL ? { photoURL } : {}),
+    };
+    await getAuth().updateUser(uuid, profile).catch(async err => {
         if (err.code === "auth/user-not-found") {
-            getAuth().createUser({
-                uid: uuid,
-                email,
-                displayName: name,
-                photoURL,
-                emailVerified: true,
-            });
+            await getAuth().createUser({ uid: uuid, ...profile });
+        } else {
+            throw err;
         }
     });
-
-    await Promise.all([createAccount]);
     await db.collection("users").doc(uuid).set({
         displayName: name,
         photoURL,
         access,
-        refresh,
+        ...(refresh ? { refresh } : {}),
         topTracks,
         topArtists,
         artistsPastFourWeeks,
