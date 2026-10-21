@@ -31,10 +31,10 @@ const db = getFirestore();
 
 //initialize pusher node (only intended for server) client
 const pusher = new Pusher.default({
-    key: "5e07f212c04ae7ccbb27",
-    appId: "1429007",
-    secret: "c697355a10163fb3bdf4",
-    cluster: "us2",
+    key: process.env.PUSHER_KEY,
+    appId: process.env.PUSHER_APP_ID,
+    secret: process.env.PUSHER_SECRET,
+    cluster: process.env.PUSHER_CLUSTER,
 });
 
 /**
