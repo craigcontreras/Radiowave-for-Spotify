@@ -8,7 +8,7 @@ I also used Spotify's API to show a user's top played songs, albums, etc. --- I 
 
 A big issue with my Spotify integration was that the only songs that were allowed on the database were from Spotify. I didn't implement the option to create songs or albums that weren't on Spotify --- also only worked for Spotify users, no Apple Music, Deezer, etc. --- very bad idea but I was 16, so I didn't understand that
 
-I stopped working on it in October 2022 after a loss in interest and seeing that there were other websites that did it better with a much larger database of songs. However, there is still no mobile app---might be an untapped market.
+I stopped working on it in October 2022 after a loss in interest and seeing that there were other websites that did it better with a much larger database of songs. However, there is still no mobile app---might be an untapped market. At the time, SvelteKit hadn't even released its first stable release.
 
 I updated it on October 21, 2026 to get the authentication process working, and to get rid of all of my admin credential keys for Spotify and Firebase cause they were all hardcoded in here (Jesus!)
 
@@ -21,4 +21,4 @@ npm ci
 npm run dev
 ```
 
-because we're using pre-1.x.x SvelteKit here (it was 2022!). Enjoy! You could probably use this as a starter codebase if you're trying to implement Spotify OAuth yourself, but honestly: don't trust this... The OAuth flowchart on Spotify's developer page was what I used, and it was more than enough.
+Enjoy! You could probably use this as a starter codebase if you're trying to implement Spotify OAuth yourself, but honestly: don't trust this... The OAuth flowchart on Spotify's developer page was what I used, and it was more than enough.
