@@ -1,5 +1,7 @@
 # Radiowave for Spotify (radiowave.app)
 
+![Album page](static/readme/album-page.gif)
+
 Radiowave for Spotify was a website I created in June 2022 as a sophomore in high school using SvelteKit, Express, TailwindCSS, daisyUI, and Firebase. It was a music rating website integrated into Spotify. The onboarding process was Spotify -> registering on Firebase using the user's Spotify account details. I would fetch album and track details from Spotify, and then store that data into Firestore.
 
 I created an Express server (/src/webserver) to handle my custom Spotify integration, which was a stupid design choice because SvelteKit has server-only modules --- could've just implemented it in SvelteKit. This led to a weird and hacky Express/SvelteKit/node-adapter integration which wasn't necessary whatsoever. I was 16 though, so cut me some slack.
